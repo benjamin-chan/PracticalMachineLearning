@@ -59,7 +59,8 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 <div id="TOC">
 <ul>
-<li><a href="#get-the-data">Get the data</a></li>
+<li><a href="#get-the-training-data">Get the training data</a></li>
+<li><a href="#build-a-prediction-model">Build a prediction model</a></li>
 </ul>
 </div>
 
@@ -105,14 +106,16 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <blockquote>
 <p>Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis.</p>
 </blockquote>
-<div id="get-the-data" class="section level1">
-<h1>Get the data</h1>
-<p>Read the training data into a data table.</p>
+<div id="get-the-training-data" class="section level1">
+<h1>Get the training data</h1>
+<p>Read the training data into a data table. Drop the <code>V1</code> variable (it’s just a row number)</p>
 <pre class="r"><code>require(data.table)</code></pre>
 <pre><code>## Loading required package: data.table</code></pre>
 <pre class="r"><code>setInternet2(TRUE)
 url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
-DTrain &lt;- fread(url)</code></pre>
+colNames &lt;- names(fread(url, nrow=0))
+drop &lt;- c(&quot;V1&quot;)
+DTrain &lt;- fread(url, drop=drop)</code></pre>
 <p>Make <code>classe</code> into a factor.</p>
 <pre class="r"><code>DTrain &lt;- DTrain[, classe := factor(classe)]
 is.factor(DTrain[, classe])</code></pre>
@@ -124,12 +127,50 @@ is.factor(DTrain[, classe])</code></pre>
 ## 3:      C 3422
 ## 4:      D 3216
 ## 5:      E 3607</code></pre>
+<p>Change the <em>belt</em>, <em>arm</em>, <em>dumbbell</em>, and <em>forearm</em> columns to numeric. Ignore the warnings.</p>
+<pre class="r"><code>colNames &lt;- names(DTrain)
+colNumeric &lt;- grep(&quot;belt|arm|dumbbell|forearm&quot;, colNames)
+colNonNumeric &lt;- grep(&quot;belt|arm|dumbbell|forearm&quot;, colNames, invert=TRUE)
+DTrain &lt;- data.table(DTrain[, colNonNumeric, with=FALSE], data.matrix(DTrain[, colNumeric, with=FALSE]))</code></pre>
+<pre><code>## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion</code></pre>
 <p>Get a <em>feel</em> for the training data.</p>
 <pre class="r"><code>names(DTrain)</code></pre>
-<pre><code>##   [1] &quot;V1&quot;                       &quot;user_name&quot;               
-##   [3] &quot;raw_timestamp_part_1&quot;     &quot;raw_timestamp_part_2&quot;    
-##   [5] &quot;cvtd_timestamp&quot;           &quot;new_window&quot;              
-##   [7] &quot;num_window&quot;               &quot;roll_belt&quot;               
+<pre><code>##   [1] &quot;user_name&quot;                &quot;raw_timestamp_part_1&quot;    
+##   [3] &quot;raw_timestamp_part_2&quot;     &quot;cvtd_timestamp&quot;          
+##   [5] &quot;new_window&quot;               &quot;num_window&quot;              
+##   [7] &quot;classe&quot;                   &quot;roll_belt&quot;               
 ##   [9] &quot;pitch_belt&quot;               &quot;yaw_belt&quot;                
 ##  [11] &quot;total_accel_belt&quot;         &quot;kurtosis_roll_belt&quot;      
 ##  [13] &quot;kurtosis_picth_belt&quot;      &quot;kurtosis_yaw_belt&quot;       
@@ -205,553 +246,130 @@ is.factor(DTrain[, classe])</code></pre>
 ## [153] &quot;gyros_forearm_z&quot;          &quot;accel_forearm_x&quot;         
 ## [155] &quot;accel_forearm_y&quot;          &quot;accel_forearm_z&quot;         
 ## [157] &quot;magnet_forearm_x&quot;         &quot;magnet_forearm_y&quot;        
-## [159] &quot;magnet_forearm_z&quot;         &quot;classe&quot;</code></pre>
-<pre class="r"><code>DTrain</code></pre>
-<pre><code>##           V1 user_name raw_timestamp_part_1 raw_timestamp_part_2
-##     1:     1  carlitos           1323084231               788290
-##     2:     2  carlitos           1323084231               808298
-##     3:     3  carlitos           1323084231               820366
-##     4:     4  carlitos           1323084232               120339
-##     5:     5  carlitos           1323084232               196328
-##    ---                                                          
-## 19618: 19618    adelmo           1322832937               588376
-## 19619: 19619    adelmo           1322832937               596287
-## 19620: 19620    adelmo           1322832937               636283
-## 19621: 19621    adelmo           1322832937               964299
-## 19622: 19622    adelmo           1322832937               972293
-##          cvtd_timestamp new_window num_window roll_belt pitch_belt
-##     1: 05/12/2011 11:23         no         11      1.41       8.07
-##     2: 05/12/2011 11:23         no         11      1.41       8.07
-##     3: 05/12/2011 11:23         no         11      1.42       8.07
-##     4: 05/12/2011 11:23         no         12      1.48       8.05
-##     5: 05/12/2011 11:23         no         12      1.48       8.07
-##    ---                                                            
-## 19618: 02/12/2011 13:35         no        864    147.00     -34.80
-## 19619: 02/12/2011 13:35         no        864    145.00     -35.30
-## 19620: 02/12/2011 13:35         no        864    145.00     -35.50
-## 19621: 02/12/2011 13:35         no        864    143.00     -35.90
-## 19622: 02/12/2011 13:35        yes        864    143.00     -36.00
-##        yaw_belt total_accel_belt kurtosis_roll_belt kurtosis_picth_belt
-##     1:    -94.4                3                                       
-##     2:    -94.4                3                                       
-##     3:    -94.4                3                                       
-##     4:    -94.4                3                                       
-##     5:    -94.4                3                                       
-##    ---                                                                 
-## 19618:    129.0               21                                       
-## 19619:    130.0               19                                       
-## 19620:    130.0               19                                       
-## 19621:    131.0               18                                       
-## 19622:    132.0               18          -1.175902           -1.063259
-##        kurtosis_yaw_belt skewness_roll_belt skewness_roll_belt.1
-##     1:                                                          
-##     2:                                                          
-##     3:                                                          
-##     4:                                                          
-##     5:                                                          
-##    ---                                                          
-## 19618:                                                          
-## 19619:                                                          
-## 19620:                                                          
-## 19621:                                                          
-## 19622:           #DIV/0!           0.196860            -0.572396
-##        skewness_yaw_belt max_roll_belt max_picth_belt max_yaw_belt
-##     1:                              NA             NA             
-##     2:                              NA             NA             
-##     3:                              NA             NA             
-##     4:                              NA             NA             
-##     5:                              NA             NA             
-##    ---                                                            
-## 19618:                              NA             NA             
-## 19619:                              NA             NA             
-## 19620:                              NA             NA             
-## 19621:                              NA             NA             
-## 19622:           #DIV/0!           132             25         -1.2
-##        min_roll_belt min_pitch_belt min_yaw_belt amplitude_roll_belt
-##     1:            NA             NA                               NA
-##     2:            NA             NA                               NA
-##     3:            NA             NA                               NA
-##     4:            NA             NA                               NA
-##     5:            NA             NA                               NA
-##    ---                                                              
-## 19618:            NA             NA                               NA
-## 19619:            NA             NA                               NA
-## 19620:            NA             NA                               NA
-## 19621:            NA             NA                               NA
-## 19622:           123             18         -1.2                   9
-##        amplitude_pitch_belt amplitude_yaw_belt var_total_accel_belt
-##     1:                   NA                                      NA
-##     2:                   NA                                      NA
-##     3:                   NA                                      NA
-##     4:                   NA                                      NA
-##     5:                   NA                                      NA
-##    ---                                                             
-## 19618:                   NA                                      NA
-## 19619:                   NA                                      NA
-## 19620:                   NA                                      NA
-## 19621:                   NA                                      NA
-## 19622:                    7               0.00                5.627
-##        avg_roll_belt stddev_roll_belt var_roll_belt avg_pitch_belt
-##     1:            NA               NA            NA             NA
-##     2:            NA               NA            NA             NA
-##     3:            NA               NA            NA             NA
-##     4:            NA               NA            NA             NA
-##     5:            NA               NA            NA             NA
-##    ---                                                            
-## 19618:            NA               NA            NA             NA
-## 19619:            NA               NA            NA             NA
-## 19620:            NA               NA            NA             NA
-## 19621:            NA               NA            NA             NA
-## 19622:         151.1            4.753         22.59         -33.63
-##        stddev_pitch_belt var_pitch_belt avg_yaw_belt stddev_yaw_belt
-##     1:                NA             NA           NA              NA
-##     2:                NA             NA           NA              NA
-##     3:                NA             NA           NA              NA
-##     4:                NA             NA           NA              NA
-##     5:                NA             NA           NA              NA
-##    ---                                                              
-## 19618:                NA             NA           NA              NA
-## 19619:                NA             NA           NA              NA
-## 19620:                NA             NA           NA              NA
-## 19621:                NA             NA           NA              NA
-## 19622:             1.395          1.947        126.9            2.75
-##        var_yaw_belt gyros_belt_x gyros_belt_y gyros_belt_z accel_belt_x
-##     1:           NA         0.00         0.00        -0.02          -21
-##     2:           NA         0.02         0.00        -0.02          -22
-##     3:           NA         0.00         0.00        -0.02          -20
-##     4:           NA         0.02         0.00        -0.03          -22
-##     5:           NA         0.02         0.02        -0.02          -21
-##    ---                                                                 
-## 19618:           NA         0.37        -0.02        -0.67           50
-## 19619:           NA         0.39        -0.02        -0.67           47
-## 19620:           NA         0.37         0.00        -0.64           47
-## 19621:           NA         0.37        -0.02        -0.59           46
-## 19622:        7.564         0.35        -0.02        -0.57           42
-##        accel_belt_y accel_belt_z magnet_belt_x magnet_belt_y magnet_belt_z
-##     1:            4           22            -3           599          -313
-##     2:            4           22            -7           608          -311
-##     3:            5           23            -2           600          -305
-##     4:            3           21            -6           604          -310
-##     5:            2           24            -6           600          -302
-##    ---                                                                    
-## 19618:           26         -193           190           552          -412
-## 19619:           15         -179           192           558          -389
-## 19620:           13         -177           191           560          -386
-## 19621:           18         -172           190           565          -370
-## 19622:           25         -171           194           566          -349
-##        roll_arm pitch_arm yaw_arm total_accel_arm var_accel_arm
-##     1:   -128.0      22.5  -161.0              34            NA
-##     2:   -128.0      22.5  -161.0              34            NA
-##     3:   -128.0      22.5  -161.0              34            NA
-##     4:   -128.0      22.1  -161.0              34            NA
-##     5:   -128.0      22.1  -161.0              34            NA
-##    ---                                                         
-## 19618:    -99.4     -33.8    79.0              47            NA
-## 19619:    -99.6     -34.5    77.3              45            NA
-## 19620:    -99.6     -35.1    76.3              44            NA
-## 19621:    -98.6     -36.7    73.5              41            NA
-## 19622:    -97.6     -37.7    71.5              41         54.26
-##        avg_roll_arm stddev_roll_arm var_roll_arm avg_pitch_arm
-##     1:           NA              NA           NA            NA
-##     2:           NA              NA           NA            NA
-##     3:           NA              NA           NA            NA
-##     4:           NA              NA           NA            NA
-##     5:           NA              NA           NA            NA
-##    ---                                                        
-## 19618:           NA              NA           NA            NA
-## 19619:           NA              NA           NA            NA
-## 19620:           NA              NA           NA            NA
-## 19621:           NA              NA           NA            NA
-## 19622:       -91.65           9.169        84.06        -37.65
-##        stddev_pitch_arm var_pitch_arm avg_yaw_arm stddev_yaw_arm
-##     1:               NA            NA          NA             NA
-##     2:               NA            NA          NA             NA
-##     3:               NA            NA          NA             NA
-##     4:               NA            NA          NA             NA
-##     5:               NA            NA          NA             NA
-##    ---                                                          
-## 19618:               NA            NA          NA             NA
-## 19619:               NA            NA          NA             NA
-## 19620:               NA            NA          NA             NA
-## 19621:               NA            NA          NA             NA
-## 19622:            3.616         13.08       66.31          15.48
-##        var_yaw_arm gyros_arm_x gyros_arm_y gyros_arm_z accel_arm_x
-##     1:          NA        0.00        0.00       -0.02        -288
-##     2:          NA        0.02       -0.02       -0.02        -290
-##     3:          NA        0.02       -0.02       -0.02        -289
-##     4:          NA        0.02       -0.03        0.02        -289
-##     5:          NA        0.00       -0.03        0.00        -289
-##    ---                                                            
-## 19618:          NA        0.55       -0.51        0.25          75
-## 19619:          NA        0.88       -0.71        0.21          52
-## 19620:          NA        0.98       -0.82        0.23          62
-## 19621:          NA        1.35       -1.00        0.49          70
-## 19622:       239.6        1.51       -1.06        0.59          58
-##        accel_arm_y accel_arm_z magnet_arm_x magnet_arm_y magnet_arm_z
-##     1:         109        -123         -368          337          516
-##     2:         110        -125         -369          337          513
-##     3:         110        -126         -368          344          513
-##     4:         111        -123         -372          344          512
-##     5:         111        -123         -374          337          506
-##    ---                                                               
-## 19618:        -184        -415          272         -134         -562
-## 19619:        -163        -406          288         -112         -559
-## 19620:        -167        -391          309         -103         -541
-## 19621:        -164        -359          339          -91         -543
-## 19622:        -152        -365          362          -84         -539
-##        kurtosis_roll_arm kurtosis_picth_arm kurtosis_yaw_arm
-##     1:                                                      
-##     2:                                                      
-##     3:                                                      
-##     4:                                                      
-##     5:                                                      
-##    ---                                                      
-## 19618:                                                      
-## 19619:                                                      
-## 19620:                                                      
-## 19621:                                                      
-## 19622:          -1.32631            0.50959         -0.62736
-##        skewness_roll_arm skewness_pitch_arm skewness_yaw_arm max_roll_arm
-##     1:                                                                 NA
-##     2:                                                                 NA
-##     3:                                                                 NA
-##     4:                                                                 NA
-##     5:                                                                 NA
-##    ---                                                                   
-## 19618:                                                                 NA
-## 19619:                                                                 NA
-## 19620:                                                                 NA
-## 19621:                                                                 NA
-## 19622:          -0.51721           -1.26872         -0.77150        -33.7
-##        max_picth_arm max_yaw_arm min_roll_arm min_pitch_arm min_yaw_arm
-##     1:            NA          NA           NA            NA          NA
-##     2:            NA          NA           NA            NA          NA
-##     3:            NA          NA           NA            NA          NA
-##     4:            NA          NA           NA            NA          NA
-##     5:            NA          NA           NA            NA          NA
-##    ---                                                                 
-## 19618:            NA          NA           NA            NA          NA
-## 19619:            NA          NA           NA            NA          NA
-## 19620:            NA          NA           NA            NA          NA
-## 19621:            NA          NA           NA            NA          NA
-## 19622:          79.5          49        -43.5          27.5          25
-##        amplitude_roll_arm amplitude_pitch_arm amplitude_yaw_arm
-##     1:                 NA                  NA                NA
-##     2:                 NA                  NA                NA
-##     3:                 NA                  NA                NA
-##     4:                 NA                  NA                NA
-##     5:                 NA                  NA                NA
-##    ---                                                         
-## 19618:                 NA                  NA                NA
-## 19619:                 NA                  NA                NA
-## 19620:                 NA                  NA                NA
-## 19621:                 NA                  NA                NA
-## 19622:                9.8                  52                24
-##        roll_dumbbell pitch_dumbbell yaw_dumbbell kurtosis_roll_dumbbell
-##     1:         13.05         -70.49       -84.87                       
-##     2:         13.13         -70.64       -84.71                       
-##     3:         12.85         -70.28       -85.14                       
-##     4:         13.43         -70.39       -84.87                       
-##     5:         13.38         -70.43       -84.85                       
-##    ---                                                                 
-## 19618:         36.41         -22.86      -113.50                       
-## 19619:         35.15         -22.97      -114.53                       
-## 19620:         30.06         -20.99      -120.03                       
-## 19621:         22.86         -21.76      -125.25                       
-## 19622:         20.80         -19.70      -128.20                -1.1322
-##        kurtosis_picth_dumbbell kurtosis_yaw_dumbbell
-##     1:                                              
-##     2:                                              
-##     3:                                              
-##     4:                                              
-##     5:                                              
-##    ---                                              
-## 19618:                                              
-## 19619:                                              
-## 19620:                                              
-## 19621:                                              
-## 19622:                 -0.7225               #DIV/0!
-##        skewness_roll_dumbbell skewness_pitch_dumbbell
-##     1:                                               
-##     2:                                               
-##     3:                                               
-##     4:                                               
-##     5:                                               
-##    ---                                               
-## 19618:                                               
-## 19619:                                               
-## 19620:                                               
-## 19621:                                               
-## 19622:                 0.0955                  0.1057
-##        skewness_yaw_dumbbell max_roll_dumbbell max_picth_dumbbell
-##     1:                                      NA                 NA
-##     2:                                      NA                 NA
-##     3:                                      NA                 NA
-##     4:                                      NA                 NA
-##     5:                                      NA                 NA
-##    ---                                                           
-## 19618:                                      NA                 NA
-## 19619:                                      NA                 NA
-## 19620:                                      NA                 NA
-## 19621:                                      NA                 NA
-## 19622:               #DIV/0!             -19.7                -92
-##        max_yaw_dumbbell min_roll_dumbbell min_pitch_dumbbell
-##     1:                                 NA                 NA
-##     2:                                 NA                 NA
-##     3:                                 NA                 NA
-##     4:                                 NA                 NA
-##     5:                                 NA                 NA
-##    ---                                                      
-## 19618:                                 NA                 NA
-## 19619:                                 NA                 NA
-## 19620:                                 NA                 NA
-## 19621:                                 NA                 NA
-## 19622:             -1.1             -33.1             -128.2
-##        min_yaw_dumbbell amplitude_roll_dumbbell amplitude_pitch_dumbbell
-##     1:                                       NA                       NA
-##     2:                                       NA                       NA
-##     3:                                       NA                       NA
-##     4:                                       NA                       NA
-##     5:                                       NA                       NA
-##    ---                                                                  
-## 19618:                                       NA                       NA
-## 19619:                                       NA                       NA
-## 19620:                                       NA                       NA
-## 19621:                                       NA                       NA
-## 19622:             -1.1                   13.41                     36.2
-##        amplitude_yaw_dumbbell total_accel_dumbbell var_accel_dumbbell
-##     1:                                          37                 NA
-##     2:                                          37                 NA
-##     3:                                          37                 NA
-##     4:                                          37                 NA
-##     5:                                          37                 NA
-##    ---                                                               
-## 19618:                                          19                 NA
-## 19619:                                          18                 NA
-## 19620:                                          19                 NA
-## 19621:                                          19                 NA
-## 19622:                   0.00                   19             0.4217
-##        avg_roll_dumbbell stddev_roll_dumbbell var_roll_dumbbell
-##     1:                NA                   NA                NA
-##     2:                NA                   NA                NA
-##     3:                NA                   NA                NA
-##     4:                NA                   NA                NA
-##     5:                NA                   NA                NA
-##    ---                                                         
-## 19618:                NA                   NA                NA
-## 19619:                NA                   NA                NA
-## 19620:                NA                   NA                NA
-## 19621:                NA                   NA                NA
-## 19622:             37.34                9.783              95.7
-##        avg_pitch_dumbbell stddev_pitch_dumbbell var_pitch_dumbbell
-##     1:                 NA                    NA                 NA
-##     2:                 NA                    NA                 NA
-##     3:                 NA                    NA                 NA
-##     4:                 NA                    NA                 NA
-##     5:                 NA                    NA                 NA
-##    ---                                                            
-## 19618:                 NA                    NA                 NA
-## 19619:                 NA                    NA                 NA
-## 19620:                 NA                    NA                 NA
-## 19621:                 NA                    NA                 NA
-## 19622:             -26.82                  4.01              16.08
-##        avg_yaw_dumbbell stddev_yaw_dumbbell var_yaw_dumbbell
-##     1:               NA                  NA               NA
-##     2:               NA                  NA               NA
-##     3:               NA                  NA               NA
-##     4:               NA                  NA               NA
-##     5:               NA                  NA               NA
-##    ---                                                      
-## 19618:               NA                  NA               NA
-## 19619:               NA                  NA               NA
-## 19620:               NA                  NA               NA
-## 19621:               NA                  NA               NA
-## 19622:             -110               9.748            95.01
-##        gyros_dumbbell_x gyros_dumbbell_y gyros_dumbbell_z accel_dumbbell_x
-##     1:             0.00            -0.02             0.00             -234
-##     2:             0.00            -0.02             0.00             -233
-##     3:             0.00            -0.02             0.00             -232
-##     4:             0.00            -0.02            -0.02             -232
-##     5:             0.00            -0.02             0.00             -233
-##    ---                                                                    
-## 19618:             0.32            -0.26            -0.36              -42
-## 19619:             0.24            -0.24             0.05              -41
-## 19620:             0.22            -0.27             0.21              -38
-## 19621:             0.13            -0.14             0.34              -40
-## 19622:             0.02             0.02             0.36              -36
-##        accel_dumbbell_y accel_dumbbell_z magnet_dumbbell_x
-##     1:               47             -271              -559
-##     2:               47             -269              -555
-##     3:               46             -270              -561
-##     4:               48             -269              -552
-##     5:               48             -270              -554
-##    ---                                                    
-## 19618:               66             -168              -618
-## 19619:               62             -164              -618
-## 19620:               54             -170              -621
-## 19621:               42             -176              -628
-## 19622:               38             -176              -627
-##        magnet_dumbbell_y magnet_dumbbell_z roll_forearm pitch_forearm
-##     1:               293               -65         28.4         -63.9
-##     2:               296               -64         28.3         -63.9
-##     3:               298               -63         28.3         -63.9
-##     4:               303               -60         28.1         -63.9
-##     5:               292               -68         28.0         -63.9
-##    ---                                                               
-## 19618:               134                 0          0.0           0.0
-## 19619:               116                 7          0.0           0.0
-## 19620:               113                -9          0.0           0.0
-## 19621:               116                 0          0.0           0.0
-## 19622:               119                 2          0.0           0.0
-##        yaw_forearm kurtosis_roll_forearm kurtosis_picth_forearm
-##     1:        -153                                             
-##     2:        -153                                             
-##     3:        -152                                             
-##     4:        -152                                             
-##     5:        -152                                             
-##    ---                                                         
-## 19618:           0                                             
-## 19619:           0                                             
-## 19620:           0                                             
-## 19621:           0                                             
-## 19622:           0               #DIV/0!                #DIV/0!
-##        kurtosis_yaw_forearm skewness_roll_forearm skewness_pitch_forearm
-##     1:                                                                  
-##     2:                                                                  
-##     3:                                                                  
-##     4:                                                                  
-##     5:                                                                  
-##    ---                                                                  
-## 19618:                                                                  
-## 19619:                                                                  
-## 19620:                                                                  
-## 19621:                                                                  
-## 19622:              #DIV/0!               #DIV/0!                #DIV/0!
-##        skewness_yaw_forearm max_roll_forearm max_picth_forearm
-##     1:                                    NA                NA
-##     2:                                    NA                NA
-##     3:                                    NA                NA
-##     4:                                    NA                NA
-##     5:                                    NA                NA
-##    ---                                                        
-## 19618:                                    NA                NA
-## 19619:                                    NA                NA
-## 19620:                                    NA                NA
-## 19621:                                    NA                NA
-## 19622:              #DIV/0!                0                 0
-##        max_yaw_forearm min_roll_forearm min_pitch_forearm min_yaw_forearm
-##     1:                               NA                NA                
-##     2:                               NA                NA                
-##     3:                               NA                NA                
-##     4:                               NA                NA                
-##     5:                               NA                NA                
-##    ---                                                                   
-## 19618:                               NA                NA                
-## 19619:                               NA                NA                
-## 19620:                               NA                NA                
-## 19621:                               NA                NA                
-## 19622:         #DIV/0!                0                 0         #DIV/0!
-##        amplitude_roll_forearm amplitude_pitch_forearm
-##     1:                     NA                      NA
-##     2:                     NA                      NA
-##     3:                     NA                      NA
-##     4:                     NA                      NA
-##     5:                     NA                      NA
-##    ---                                               
-## 19618:                     NA                      NA
-## 19619:                     NA                      NA
-## 19620:                     NA                      NA
-## 19621:                     NA                      NA
-## 19622:                      0                       0
-##        amplitude_yaw_forearm total_accel_forearm var_accel_forearm
-##     1:                                        36                NA
-##     2:                                        36                NA
-##     3:                                        36                NA
-##     4:                                        36                NA
-##     5:                                        36                NA
-##    ---                                                            
-## 19618:                                        29                NA
-## 19619:                                        29                NA
-## 19620:                                        29                NA
-## 19621:                                        32                NA
-## 19622:               #DIV/0!                  33             30.11
-##        avg_roll_forearm stddev_roll_forearm var_roll_forearm
-##     1:               NA                  NA               NA
-##     2:               NA                  NA               NA
-##     3:               NA                  NA               NA
-##     4:               NA                  NA               NA
-##     5:               NA                  NA               NA
-##    ---                                                      
-## 19618:               NA                  NA               NA
-## 19619:               NA                  NA               NA
-## 19620:               NA                  NA               NA
-## 19621:               NA                  NA               NA
-## 19622:                0                   0                0
-##        avg_pitch_forearm stddev_pitch_forearm var_pitch_forearm
-##     1:                NA                   NA                NA
-##     2:                NA                   NA                NA
-##     3:                NA                   NA                NA
-##     4:                NA                   NA                NA
-##     5:                NA                   NA                NA
-##    ---                                                         
-## 19618:                NA                   NA                NA
-## 19619:                NA                   NA                NA
-## 19620:                NA                   NA                NA
-## 19621:                NA                   NA                NA
-## 19622:                 0                    0                 0
-##        avg_yaw_forearm stddev_yaw_forearm var_yaw_forearm gyros_forearm_x
-##     1:              NA                 NA              NA            0.03
-##     2:              NA                 NA              NA            0.02
-##     3:              NA                 NA              NA            0.03
-##     4:              NA                 NA              NA            0.02
-##     5:              NA                 NA              NA            0.02
-##    ---                                                                   
-## 19618:              NA                 NA              NA            1.73
-## 19619:              NA                 NA              NA            1.59
-## 19620:              NA                 NA              NA            1.54
-## 19621:              NA                 NA              NA            1.48
-## 19622:               0                  0               0            1.38
-##        gyros_forearm_y gyros_forearm_z accel_forearm_x accel_forearm_y
-##     1:            0.00           -0.02             192             203
-##     2:            0.00           -0.02             192             203
-##     3:           -0.02            0.00             196             204
-##     4:           -0.02            0.00             189             206
-##     5:            0.00           -0.02             189             206
-##    ---                                                                
-## 19618:           -1.75           -0.25            -271             -68
-## 19619:           -1.36            0.00            -271             -91
-## 19620:           -1.20            0.05            -263             -99
-## 19621:           -0.90            0.05            -270            -141
-## 19622:           -0.64            0.08            -278            -159
-##        accel_forearm_z magnet_forearm_x magnet_forearm_y magnet_forearm_z
-##     1:            -215              -17              654              476
-##     2:            -216              -18              661              473
-##     3:            -213              -18              658              469
-##     4:            -214              -16              658              469
-##     5:            -214              -17              655              473
-##    ---                                                                   
-## 19618:             -37             -205             -587                6
-## 19619:             -43             -151             -635              -36
-## 19620:             -45             -116             -654              -70
-## 19621:             -51              -68             -678              -98
-## 19622:             -52              -60             -686             -110
-##        classe
-##     1:      A
-##     2:      A
-##     3:      A
-##     4:      A
-##     5:      A
-##    ---       
-## 19618:      E
-## 19619:      E
-## 19620:      E
-## 19621:      E
-## 19622:      E</code></pre>
-<p>Do some minor data tidying.</p>
-<ul>
-<li>Drop the <code>V1</code> variable (it’s just a row number)</li>
-</ul>
-<pre class="r"><code>DTrain &lt;- DTrain[, V1 := NULL]</code></pre>
+## [159] &quot;magnet_forearm_z&quot;</code></pre>
+<pre class="r"><code>str(DTrain)</code></pre>
+<pre><code>## Classes 'data.table' and 'data.frame':   19622 obs. of  159 variables:
+##  $ user_name               : chr  &quot;carlitos&quot; &quot;carlitos&quot; &quot;carlitos&quot; &quot;carlitos&quot; ...
+##  $ raw_timestamp_part_1    : int  1323084231 1323084231 1323084231 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 ...
+##  $ raw_timestamp_part_2    : int  788290 808298 820366 120339 196328 304277 368296 440390 484323 484434 ...
+##  $ cvtd_timestamp          : chr  &quot;05/12/2011 11:23&quot; &quot;05/12/2011 11:23&quot; &quot;05/12/2011 11:23&quot; &quot;05/12/2011 11:23&quot; ...
+##  $ new_window              : chr  &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; ...
+##  $ num_window              : int  11 11 11 12 12 12 12 12 12 12 ...
+##  $ classe                  : Factor w/ 5 levels &quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ roll_belt               : num  1.41 1.41 1.42 1.48 1.48 1.45 1.42 1.42 1.43 1.45 ...
+##  $ pitch_belt              : num  8.07 8.07 8.07 8.05 8.07 8.06 8.09 8.13 8.16 8.17 ...
+##  $ yaw_belt                : num  -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 ...
+##  $ total_accel_belt        : num  3 3 3 3 3 3 3 3 3 3 ...
+##  $ kurtosis_roll_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_belt     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_belt.1    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_belt     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_pitch_belt    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_yaw_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_total_accel_belt    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_roll_belt        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_pitch_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_yaw_belt         : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ gyros_belt_x            : num  0 0.02 0 0.02 0.02 0.02 0.02 0.02 0.02 0.03 ...
+##  $ gyros_belt_y            : num  0 0 0 0 0.02 0 0 0 0 0 ...
+##  $ gyros_belt_z            : num  -0.02 -0.02 -0.02 -0.03 -0.02 -0.02 -0.02 -0.02 -0.02 0 ...
+##  $ accel_belt_x            : num  -21 -22 -20 -22 -21 -21 -22 -22 -20 -21 ...
+##  $ accel_belt_y            : num  4 4 5 3 2 4 3 4 2 4 ...
+##  $ accel_belt_z            : num  22 22 23 21 24 21 21 21 24 22 ...
+##  $ magnet_belt_x           : num  -3 -7 -2 -6 -6 0 -4 -2 1 -3 ...
+##  $ magnet_belt_y           : num  599 608 600 604 600 603 599 603 602 609 ...
+##  $ magnet_belt_z           : num  -313 -311 -305 -310 -302 -312 -311 -313 -312 -308 ...
+##  $ roll_arm                : num  -128 -128 -128 -128 -128 -128 -128 -128 -128 -128 ...
+##  $ pitch_arm               : num  22.5 22.5 22.5 22.1 22.1 22 21.9 21.8 21.7 21.6 ...
+##  $ yaw_arm                 : num  -161 -161 -161 -161 -161 -161 -161 -161 -161 -161 ...
+##  $ total_accel_arm         : num  34 34 34 34 34 34 34 34 34 34 ...
+##  $ var_accel_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_roll_arm         : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_pitch_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_yaw_arm          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ gyros_arm_x             : num  0 0.02 0.02 0.02 0 0.02 0 0.02 0.02 0.02 ...
+##  $ gyros_arm_y             : num  0 -0.02 -0.02 -0.03 -0.03 -0.03 -0.03 -0.02 -0.03 -0.03 ...
+##  $ gyros_arm_z             : num  -0.02 -0.02 -0.02 0.02 0 0 0 0 -0.02 -0.02 ...
+##  $ accel_arm_x             : num  -288 -290 -289 -289 -289 -289 -289 -289 -288 -288 ...
+##  $ accel_arm_y             : num  109 110 110 111 111 111 111 111 109 110 ...
+##  $ accel_arm_z             : num  -123 -125 -126 -123 -123 -122 -125 -124 -122 -124 ...
+##  $ magnet_arm_x            : num  -368 -369 -368 -372 -374 -369 -373 -372 -369 -376 ...
+##  $ magnet_arm_y            : num  337 337 344 344 337 342 336 338 341 334 ...
+##  $ magnet_arm_z            : num  516 513 513 512 506 513 509 510 518 516 ...
+##  $ kurtosis_roll_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_pitch_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_pitch_arm     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_yaw_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ roll_dumbbell           : num  13.1 13.1 12.9 13.4 13.4 ...
+##  $ pitch_dumbbell          : num  -70.5 -70.6 -70.3 -70.4 -70.4 ...
+##  $ yaw_dumbbell            : num  -84.9 -84.7 -85.1 -84.9 -84.9 ...
+##  $ kurtosis_roll_dumbbell  : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_dumbbell   : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_dumbbell  : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_pitch_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_dumbbell   : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_dumbbell       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_dumbbell      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_dumbbell        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_dumbbell       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_dumbbell      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_dumbbell        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##   [list output truncated]
+##  - attr(*, &quot;.internal.selfref&quot;)=&lt;externalptr&gt;</code></pre>
+</div>
+<div id="build-a-prediction-model" class="section level1">
+<h1>Build a prediction model</h1>
+<p>Use recursive partitioning and regression trees.</p>
+<pre class="r"><code>require(rpart)</code></pre>
+<pre><code>## Loading required package: rpart</code></pre>
+<pre class="r"><code>F &lt;- as.formula(paste(&quot;classe ~ user_name +&quot;, paste(colNames[colNumeric], collapse=&quot;+&quot;)))
+M &lt;- rpart(F, DTrain)
+plot(M)
+text(M)</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABaAAAAHgCAMAAABkaTqFAAABjFBMVEX9/v0AAAAAAA0AABcAACAAACgAADEAADkAAEgAAFcAAGUAFwAAICAAIHsAKI8AMVEAOTkAOY8AOZwASEgASYEAWGYAWLUAZoEAZrUNAAANIHsNUbsXAAAXADkXZtogAAAgADkge9ooAAAogf0oj9oxAAAxAA05AAA5ABc5ACg5ADk5AGU5KAA5OSg5OTk5OY85Zlc5e3s5e485j5w5j7U5j9o5nP1IAABIKABISABISQBIj49Itf1RvP1XAABXAA1XZjlXtf1lAABlADllZgBlZjllZmVlgUhlgWVlgbVlj49lnI9ltbVltdpltf1mFwBm2/17ezl72/2BZgCB/v2PKACPMQCPOQCPZgCPgTmPj2WPnGWPtY+PvI+P27WP2/2cOgCc/v21SAC1SQC1ZgC1jzm1tWW124+1/rW1/tq1/v27UQ27jznaZhfaeyDajyjajznatWXa24/a/rXa/tra/v39gSj9nDn9tUj9tVf9tWX9tbX9vFH922b923v924/9/pz9/rX9/tr9/v33WitVAAAAhHRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wCX0ja+AAAACXBIWXMAAA7DAAAOwwHHb6hkAAAgAElEQVR4nO2djZ/r2HmQqyTLtBMIDNAwC5uE3nQx3Bs2LKkTEtKyeEhZdi/ms0xYNjtpcbPLpU1Fwm2KmmA8+sfR+dQ5+rAljWy9sp/nd++MxpZlWTp6fHTOe97zazkAAIjk16beAQAAaAZBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAIBUEDAAgFQQMACAVBAwAI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" alt="plot of chunk modelRPart" /></p>
+<pre class="r"><code>yHat &lt;- predict(M, type=&quot;class&quot;)
+table(yHat, DTrain[, classe])</code></pre>
+<pre><code>##     
+## yHat    A    B    C    D    E
+##    A 4984  585   51  185   63
+##    B  178 2414  310  277  316
+##    C  139  367 2778  482  437
+##    D  183  246  193 2045  185
+##    E   96  185   90  227 2606</code></pre>
 </div>
 
 

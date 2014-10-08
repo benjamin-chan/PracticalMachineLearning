@@ -38,15 +38,18 @@ output:
 > Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis. 
 
 
-# Get the data
+# Get the training data
 
 Read the training data into a data table.
+Drop the `V1` variable (it's just a row number)
 
 ```{r}
 require(data.table)
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-DTrain <- fread(url)
+colNames <- names(fread(url, nrow=0))
+drop <- c("V1")
+DTrain <- fread(url, drop=drop)
 ```
 
 Make `classe` into a factor.
@@ -57,17 +60,34 @@ is.factor(DTrain[, classe])
 DTrain[, .N, classe]
 ```
 
+Change the *belt*, *arm*, *dumbbell*, and *forearm* columns to numeric.
+Ignore the warnings.
+
+```{r}
+colNames <- names(DTrain)
+colNumeric <- grep("belt|arm|dumbbell|forearm", colNames)
+colNonNumeric <- grep("belt|arm|dumbbell|forearm", colNames, invert=TRUE)
+DTrain <- data.table(DTrain[, colNonNumeric, with=FALSE], data.matrix(DTrain[, colNumeric, with=FALSE]))
+```
+
 Get a *feel* for the training data.
 
 ```{r}
 names(DTrain)
-DTrain
+str(DTrain)
 ```
 
-Do some minor data tidying.
 
-* Drop the `V1` variable (it's just a row number)
+# Build a prediction model
 
-```{r}
-DTrain <- DTrain[, V1 := NULL]
+Use recursive partitioning and regression trees.
+
+```{r modelRPart, fig.width=15}
+require(rpart)
+F <- as.formula(paste("classe ~ user_name +", paste(colNames[colNumeric], collapse="+")))
+M <- rpart(F, DTrain)
+plot(M)
+text(M)
+yHat <- predict(M, type="class")
+table(yHat, DTrain[, classe])
 ```

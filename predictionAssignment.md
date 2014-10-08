@@ -32,9 +32,10 @@ Tuesday, October 07, 2014
 > Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis. 
 
 
-# Get the data
+# Get the training data
 
 Read the training data into a data table.
+Drop the `V1` variable (it's just a row number)
 
 
 ```r
@@ -48,7 +49,9 @@ require(data.table)
 ```r
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-DTrain <- fread(url)
+colNames <- names(fread(url, nrow=0))
+drop <- c("V1")
+DTrain <- fread(url, drop=drop)
 ```
 
 Make `classe` into a factor.
@@ -76,6 +79,53 @@ DTrain[, .N, classe]
 ## 5:      E 3607
 ```
 
+Change the *belt*, *arm*, *dumbbell*, and *forearm* columns to numeric.
+Ignore the warnings.
+
+
+```r
+colNames <- names(DTrain)
+colNumeric <- grep("belt|arm|dumbbell|forearm", colNames)
+colNonNumeric <- grep("belt|arm|dumbbell|forearm", colNames, invert=TRUE)
+DTrain <- data.table(DTrain[, colNonNumeric, with=FALSE], data.matrix(DTrain[, colNumeric, with=FALSE]))
+```
+
+```
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+## Warning: NAs introduced by coercion
+```
+
 Get a *feel* for the training data.
 
 
@@ -84,10 +134,10 @@ names(DTrain)
 ```
 
 ```
-##   [1] "V1"                       "user_name"               
-##   [3] "raw_timestamp_part_1"     "raw_timestamp_part_2"    
-##   [5] "cvtd_timestamp"           "new_window"              
-##   [7] "num_window"               "roll_belt"               
+##   [1] "user_name"                "raw_timestamp_part_1"    
+##   [3] "raw_timestamp_part_2"     "cvtd_timestamp"          
+##   [5] "new_window"               "num_window"              
+##   [7] "classe"                   "roll_belt"               
 ##   [9] "pitch_belt"               "yaw_belt"                
 ##  [11] "total_accel_belt"         "kurtosis_roll_belt"      
 ##  [13] "kurtosis_picth_belt"      "kurtosis_yaw_belt"       
@@ -163,561 +213,152 @@ names(DTrain)
 ## [153] "gyros_forearm_z"          "accel_forearm_x"         
 ## [155] "accel_forearm_y"          "accel_forearm_z"         
 ## [157] "magnet_forearm_x"         "magnet_forearm_y"        
-## [159] "magnet_forearm_z"         "classe"
+## [159] "magnet_forearm_z"
 ```
 
 ```r
-DTrain
+str(DTrain)
 ```
 
 ```
-##           V1 user_name raw_timestamp_part_1 raw_timestamp_part_2
-##     1:     1  carlitos           1323084231               788290
-##     2:     2  carlitos           1323084231               808298
-##     3:     3  carlitos           1323084231               820366
-##     4:     4  carlitos           1323084232               120339
-##     5:     5  carlitos           1323084232               196328
-##    ---                                                          
-## 19618: 19618    adelmo           1322832937               588376
-## 19619: 19619    adelmo           1322832937               596287
-## 19620: 19620    adelmo           1322832937               636283
-## 19621: 19621    adelmo           1322832937               964299
-## 19622: 19622    adelmo           1322832937               972293
-##          cvtd_timestamp new_window num_window roll_belt pitch_belt
-##     1: 05/12/2011 11:23         no         11      1.41       8.07
-##     2: 05/12/2011 11:23         no         11      1.41       8.07
-##     3: 05/12/2011 11:23         no         11      1.42       8.07
-##     4: 05/12/2011 11:23         no         12      1.48       8.05
-##     5: 05/12/2011 11:23         no         12      1.48       8.07
-##    ---                                                            
-## 19618: 02/12/2011 13:35         no        864    147.00     -34.80
-## 19619: 02/12/2011 13:35         no        864    145.00     -35.30
-## 19620: 02/12/2011 13:35         no        864    145.00     -35.50
-## 19621: 02/12/2011 13:35         no        864    143.00     -35.90
-## 19622: 02/12/2011 13:35        yes        864    143.00     -36.00
-##        yaw_belt total_accel_belt kurtosis_roll_belt kurtosis_picth_belt
-##     1:    -94.4                3                                       
-##     2:    -94.4                3                                       
-##     3:    -94.4                3                                       
-##     4:    -94.4                3                                       
-##     5:    -94.4                3                                       
-##    ---                                                                 
-## 19618:    129.0               21                                       
-## 19619:    130.0               19                                       
-## 19620:    130.0               19                                       
-## 19621:    131.0               18                                       
-## 19622:    132.0               18          -1.175902           -1.063259
-##        kurtosis_yaw_belt skewness_roll_belt skewness_roll_belt.1
-##     1:                                                          
-##     2:                                                          
-##     3:                                                          
-##     4:                                                          
-##     5:                                                          
-##    ---                                                          
-## 19618:                                                          
-## 19619:                                                          
-## 19620:                                                          
-## 19621:                                                          
-## 19622:           #DIV/0!           0.196860            -0.572396
-##        skewness_yaw_belt max_roll_belt max_picth_belt max_yaw_belt
-##     1:                              NA             NA             
-##     2:                              NA             NA             
-##     3:                              NA             NA             
-##     4:                              NA             NA             
-##     5:                              NA             NA             
-##    ---                                                            
-## 19618:                              NA             NA             
-## 19619:                              NA             NA             
-## 19620:                              NA             NA             
-## 19621:                              NA             NA             
-## 19622:           #DIV/0!           132             25         -1.2
-##        min_roll_belt min_pitch_belt min_yaw_belt amplitude_roll_belt
-##     1:            NA             NA                               NA
-##     2:            NA             NA                               NA
-##     3:            NA             NA                               NA
-##     4:            NA             NA                               NA
-##     5:            NA             NA                               NA
-##    ---                                                              
-## 19618:            NA             NA                               NA
-## 19619:            NA             NA                               NA
-## 19620:            NA             NA                               NA
-## 19621:            NA             NA                               NA
-## 19622:           123             18         -1.2                   9
-##        amplitude_pitch_belt amplitude_yaw_belt var_total_accel_belt
-##     1:                   NA                                      NA
-##     2:                   NA                                      NA
-##     3:                   NA                                      NA
-##     4:                   NA                                      NA
-##     5:                   NA                                      NA
-##    ---                                                             
-## 19618:                   NA                                      NA
-## 19619:                   NA                                      NA
-## 19620:                   NA                                      NA
-## 19621:                   NA                                      NA
-## 19622:                    7               0.00                5.627
-##        avg_roll_belt stddev_roll_belt var_roll_belt avg_pitch_belt
-##     1:            NA               NA            NA             NA
-##     2:            NA               NA            NA             NA
-##     3:            NA               NA            NA             NA
-##     4:            NA               NA            NA             NA
-##     5:            NA               NA            NA             NA
-##    ---                                                            
-## 19618:            NA               NA            NA             NA
-## 19619:            NA               NA            NA             NA
-## 19620:            NA               NA            NA             NA
-## 19621:            NA               NA            NA             NA
-## 19622:         151.1            4.753         22.59         -33.63
-##        stddev_pitch_belt var_pitch_belt avg_yaw_belt stddev_yaw_belt
-##     1:                NA             NA           NA              NA
-##     2:                NA             NA           NA              NA
-##     3:                NA             NA           NA              NA
-##     4:                NA             NA           NA              NA
-##     5:                NA             NA           NA              NA
-##    ---                                                              
-## 19618:                NA             NA           NA              NA
-## 19619:                NA             NA           NA              NA
-## 19620:                NA             NA           NA              NA
-## 19621:                NA             NA           NA              NA
-## 19622:             1.395          1.947        126.9            2.75
-##        var_yaw_belt gyros_belt_x gyros_belt_y gyros_belt_z accel_belt_x
-##     1:           NA         0.00         0.00        -0.02          -21
-##     2:           NA         0.02         0.00        -0.02          -22
-##     3:           NA         0.00         0.00        -0.02          -20
-##     4:           NA         0.02         0.00        -0.03          -22
-##     5:           NA         0.02         0.02        -0.02          -21
-##    ---                                                                 
-## 19618:           NA         0.37        -0.02        -0.67           50
-## 19619:           NA         0.39        -0.02        -0.67           47
-## 19620:           NA         0.37         0.00        -0.64           47
-## 19621:           NA         0.37        -0.02        -0.59           46
-## 19622:        7.564         0.35        -0.02        -0.57           42
-##        accel_belt_y accel_belt_z magnet_belt_x magnet_belt_y magnet_belt_z
-##     1:            4           22            -3           599          -313
-##     2:            4           22            -7           608          -311
-##     3:            5           23            -2           600          -305
-##     4:            3           21            -6           604          -310
-##     5:            2           24            -6           600          -302
-##    ---                                                                    
-## 19618:           26         -193           190           552          -412
-## 19619:           15         -179           192           558          -389
-## 19620:           13         -177           191           560          -386
-## 19621:           18         -172           190           565          -370
-## 19622:           25         -171           194           566          -349
-##        roll_arm pitch_arm yaw_arm total_accel_arm var_accel_arm
-##     1:   -128.0      22.5  -161.0              34            NA
-##     2:   -128.0      22.5  -161.0              34            NA
-##     3:   -128.0      22.5  -161.0              34            NA
-##     4:   -128.0      22.1  -161.0              34            NA
-##     5:   -128.0      22.1  -161.0              34            NA
-##    ---                                                         
-## 19618:    -99.4     -33.8    79.0              47            NA
-## 19619:    -99.6     -34.5    77.3              45            NA
-## 19620:    -99.6     -35.1    76.3              44            NA
-## 19621:    -98.6     -36.7    73.5              41            NA
-## 19622:    -97.6     -37.7    71.5              41         54.26
-##        avg_roll_arm stddev_roll_arm var_roll_arm avg_pitch_arm
-##     1:           NA              NA           NA            NA
-##     2:           NA              NA           NA            NA
-##     3:           NA              NA           NA            NA
-##     4:           NA              NA           NA            NA
-##     5:           NA              NA           NA            NA
-##    ---                                                        
-## 19618:           NA              NA           NA            NA
-## 19619:           NA              NA           NA            NA
-## 19620:           NA              NA           NA            NA
-## 19621:           NA              NA           NA            NA
-## 19622:       -91.65           9.169        84.06        -37.65
-##        stddev_pitch_arm var_pitch_arm avg_yaw_arm stddev_yaw_arm
-##     1:               NA            NA          NA             NA
-##     2:               NA            NA          NA             NA
-##     3:               NA            NA          NA             NA
-##     4:               NA            NA          NA             NA
-##     5:               NA            NA          NA             NA
-##    ---                                                          
-## 19618:               NA            NA          NA             NA
-## 19619:               NA            NA          NA             NA
-## 19620:               NA            NA          NA             NA
-## 19621:               NA            NA          NA             NA
-## 19622:            3.616         13.08       66.31          15.48
-##        var_yaw_arm gyros_arm_x gyros_arm_y gyros_arm_z accel_arm_x
-##     1:          NA        0.00        0.00       -0.02        -288
-##     2:          NA        0.02       -0.02       -0.02        -290
-##     3:          NA        0.02       -0.02       -0.02        -289
-##     4:          NA        0.02       -0.03        0.02        -289
-##     5:          NA        0.00       -0.03        0.00        -289
-##    ---                                                            
-## 19618:          NA        0.55       -0.51        0.25          75
-## 19619:          NA        0.88       -0.71        0.21          52
-## 19620:          NA        0.98       -0.82        0.23          62
-## 19621:          NA        1.35       -1.00        0.49          70
-## 19622:       239.6        1.51       -1.06        0.59          58
-##        accel_arm_y accel_arm_z magnet_arm_x magnet_arm_y magnet_arm_z
-##     1:         109        -123         -368          337          516
-##     2:         110        -125         -369          337          513
-##     3:         110        -126         -368          344          513
-##     4:         111        -123         -372          344          512
-##     5:         111        -123         -374          337          506
-##    ---                                                               
-## 19618:        -184        -415          272         -134         -562
-## 19619:        -163        -406          288         -112         -559
-## 19620:        -167        -391          309         -103         -541
-## 19621:        -164        -359          339          -91         -543
-## 19622:        -152        -365          362          -84         -539
-##        kurtosis_roll_arm kurtosis_picth_arm kurtosis_yaw_arm
-##     1:                                                      
-##     2:                                                      
-##     3:                                                      
-##     4:                                                      
-##     5:                                                      
-##    ---                                                      
-## 19618:                                                      
-## 19619:                                                      
-## 19620:                                                      
-## 19621:                                                      
-## 19622:          -1.32631            0.50959         -0.62736
-##        skewness_roll_arm skewness_pitch_arm skewness_yaw_arm max_roll_arm
-##     1:                                                                 NA
-##     2:                                                                 NA
-##     3:                                                                 NA
-##     4:                                                                 NA
-##     5:                                                                 NA
-##    ---                                                                   
-## 19618:                                                                 NA
-## 19619:                                                                 NA
-## 19620:                                                                 NA
-## 19621:                                                                 NA
-## 19622:          -0.51721           -1.26872         -0.77150        -33.7
-##        max_picth_arm max_yaw_arm min_roll_arm min_pitch_arm min_yaw_arm
-##     1:            NA          NA           NA            NA          NA
-##     2:            NA          NA           NA            NA          NA
-##     3:            NA          NA           NA            NA          NA
-##     4:            NA          NA           NA            NA          NA
-##     5:            NA          NA           NA            NA          NA
-##    ---                                                                 
-## 19618:            NA          NA           NA            NA          NA
-## 19619:            NA          NA           NA            NA          NA
-## 19620:            NA          NA           NA            NA          NA
-## 19621:            NA          NA           NA            NA          NA
-## 19622:          79.5          49        -43.5          27.5          25
-##        amplitude_roll_arm amplitude_pitch_arm amplitude_yaw_arm
-##     1:                 NA                  NA                NA
-##     2:                 NA                  NA                NA
-##     3:                 NA                  NA                NA
-##     4:                 NA                  NA                NA
-##     5:                 NA                  NA                NA
-##    ---                                                         
-## 19618:                 NA                  NA                NA
-## 19619:                 NA                  NA                NA
-## 19620:                 NA                  NA                NA
-## 19621:                 NA                  NA                NA
-## 19622:                9.8                  52                24
-##        roll_dumbbell pitch_dumbbell yaw_dumbbell kurtosis_roll_dumbbell
-##     1:         13.05         -70.49       -84.87                       
-##     2:         13.13         -70.64       -84.71                       
-##     3:         12.85         -70.28       -85.14                       
-##     4:         13.43         -70.39       -84.87                       
-##     5:         13.38         -70.43       -84.85                       
-##    ---                                                                 
-## 19618:         36.41         -22.86      -113.50                       
-## 19619:         35.15         -22.97      -114.53                       
-## 19620:         30.06         -20.99      -120.03                       
-## 19621:         22.86         -21.76      -125.25                       
-## 19622:         20.80         -19.70      -128.20                -1.1322
-##        kurtosis_picth_dumbbell kurtosis_yaw_dumbbell
-##     1:                                              
-##     2:                                              
-##     3:                                              
-##     4:                                              
-##     5:                                              
-##    ---                                              
-## 19618:                                              
-## 19619:                                              
-## 19620:                                              
-## 19621:                                              
-## 19622:                 -0.7225               #DIV/0!
-##        skewness_roll_dumbbell skewness_pitch_dumbbell
-##     1:                                               
-##     2:                                               
-##     3:                                               
-##     4:                                               
-##     5:                                               
-##    ---                                               
-## 19618:                                               
-## 19619:                                               
-## 19620:                                               
-## 19621:                                               
-## 19622:                 0.0955                  0.1057
-##        skewness_yaw_dumbbell max_roll_dumbbell max_picth_dumbbell
-##     1:                                      NA                 NA
-##     2:                                      NA                 NA
-##     3:                                      NA                 NA
-##     4:                                      NA                 NA
-##     5:                                      NA                 NA
-##    ---                                                           
-## 19618:                                      NA                 NA
-## 19619:                                      NA                 NA
-## 19620:                                      NA                 NA
-## 19621:                                      NA                 NA
-## 19622:               #DIV/0!             -19.7                -92
-##        max_yaw_dumbbell min_roll_dumbbell min_pitch_dumbbell
-##     1:                                 NA                 NA
-##     2:                                 NA                 NA
-##     3:                                 NA                 NA
-##     4:                                 NA                 NA
-##     5:                                 NA                 NA
-##    ---                                                      
-## 19618:                                 NA                 NA
-## 19619:                                 NA                 NA
-## 19620:                                 NA                 NA
-## 19621:                                 NA                 NA
-## 19622:             -1.1             -33.1             -128.2
-##        min_yaw_dumbbell amplitude_roll_dumbbell amplitude_pitch_dumbbell
-##     1:                                       NA                       NA
-##     2:                                       NA                       NA
-##     3:                                       NA                       NA
-##     4:                                       NA                       NA
-##     5:                                       NA                       NA
-##    ---                                                                  
-## 19618:                                       NA                       NA
-## 19619:                                       NA                       NA
-## 19620:                                       NA                       NA
-## 19621:                                       NA                       NA
-## 19622:             -1.1                   13.41                     36.2
-##        amplitude_yaw_dumbbell total_accel_dumbbell var_accel_dumbbell
-##     1:                                          37                 NA
-##     2:                                          37                 NA
-##     3:                                          37                 NA
-##     4:                                          37                 NA
-##     5:                                          37                 NA
-##    ---                                                               
-## 19618:                                          19                 NA
-## 19619:                                          18                 NA
-## 19620:                                          19                 NA
-## 19621:                                          19                 NA
-## 19622:                   0.00                   19             0.4217
-##        avg_roll_dumbbell stddev_roll_dumbbell var_roll_dumbbell
-##     1:                NA                   NA                NA
-##     2:                NA                   NA                NA
-##     3:                NA                   NA                NA
-##     4:                NA                   NA                NA
-##     5:                NA                   NA                NA
-##    ---                                                         
-## 19618:                NA                   NA                NA
-## 19619:                NA                   NA                NA
-## 19620:                NA                   NA                NA
-## 19621:                NA                   NA                NA
-## 19622:             37.34                9.783              95.7
-##        avg_pitch_dumbbell stddev_pitch_dumbbell var_pitch_dumbbell
-##     1:                 NA                    NA                 NA
-##     2:                 NA                    NA                 NA
-##     3:                 NA                    NA                 NA
-##     4:                 NA                    NA                 NA
-##     5:                 NA                    NA                 NA
-##    ---                                                            
-## 19618:                 NA                    NA                 NA
-## 19619:                 NA                    NA                 NA
-## 19620:                 NA                    NA                 NA
-## 19621:                 NA                    NA                 NA
-## 19622:             -26.82                  4.01              16.08
-##        avg_yaw_dumbbell stddev_yaw_dumbbell var_yaw_dumbbell
-##     1:               NA                  NA               NA
-##     2:               NA                  NA               NA
-##     3:               NA                  NA               NA
-##     4:               NA                  NA               NA
-##     5:               NA                  NA               NA
-##    ---                                                      
-## 19618:               NA                  NA               NA
-## 19619:               NA                  NA               NA
-## 19620:               NA                  NA               NA
-## 19621:               NA                  NA               NA
-## 19622:             -110               9.748            95.01
-##        gyros_dumbbell_x gyros_dumbbell_y gyros_dumbbell_z accel_dumbbell_x
-##     1:             0.00            -0.02             0.00             -234
-##     2:             0.00            -0.02             0.00             -233
-##     3:             0.00            -0.02             0.00             -232
-##     4:             0.00            -0.02            -0.02             -232
-##     5:             0.00            -0.02             0.00             -233
-##    ---                                                                    
-## 19618:             0.32            -0.26            -0.36              -42
-## 19619:             0.24            -0.24             0.05              -41
-## 19620:             0.22            -0.27             0.21              -38
-## 19621:             0.13            -0.14             0.34              -40
-## 19622:             0.02             0.02             0.36              -36
-##        accel_dumbbell_y accel_dumbbell_z magnet_dumbbell_x
-##     1:               47             -271              -559
-##     2:               47             -269              -555
-##     3:               46             -270              -561
-##     4:               48             -269              -552
-##     5:               48             -270              -554
-##    ---                                                    
-## 19618:               66             -168              -618
-## 19619:               62             -164              -618
-## 19620:               54             -170              -621
-## 19621:               42             -176              -628
-## 19622:               38             -176              -627
-##        magnet_dumbbell_y magnet_dumbbell_z roll_forearm pitch_forearm
-##     1:               293               -65         28.4         -63.9
-##     2:               296               -64         28.3         -63.9
-##     3:               298               -63         28.3         -63.9
-##     4:               303               -60         28.1         -63.9
-##     5:               292               -68         28.0         -63.9
-##    ---                                                               
-## 19618:               134                 0          0.0           0.0
-## 19619:               116                 7          0.0           0.0
-## 19620:               113                -9          0.0           0.0
-## 19621:               116                 0          0.0           0.0
-## 19622:               119                 2          0.0           0.0
-##        yaw_forearm kurtosis_roll_forearm kurtosis_picth_forearm
-##     1:        -153                                             
-##     2:        -153                                             
-##     3:        -152                                             
-##     4:        -152                                             
-##     5:        -152                                             
-##    ---                                                         
-## 19618:           0                                             
-## 19619:           0                                             
-## 19620:           0                                             
-## 19621:           0                                             
-## 19622:           0               #DIV/0!                #DIV/0!
-##        kurtosis_yaw_forearm skewness_roll_forearm skewness_pitch_forearm
-##     1:                                                                  
-##     2:                                                                  
-##     3:                                                                  
-##     4:                                                                  
-##     5:                                                                  
-##    ---                                                                  
-## 19618:                                                                  
-## 19619:                                                                  
-## 19620:                                                                  
-## 19621:                                                                  
-## 19622:              #DIV/0!               #DIV/0!                #DIV/0!
-##        skewness_yaw_forearm max_roll_forearm max_picth_forearm
-##     1:                                    NA                NA
-##     2:                                    NA                NA
-##     3:                                    NA                NA
-##     4:                                    NA                NA
-##     5:                                    NA                NA
-##    ---                                                        
-## 19618:                                    NA                NA
-## 19619:                                    NA                NA
-## 19620:                                    NA                NA
-## 19621:                                    NA                NA
-## 19622:              #DIV/0!                0                 0
-##        max_yaw_forearm min_roll_forearm min_pitch_forearm min_yaw_forearm
-##     1:                               NA                NA                
-##     2:                               NA                NA                
-##     3:                               NA                NA                
-##     4:                               NA                NA                
-##     5:                               NA                NA                
-##    ---                                                                   
-## 19618:                               NA                NA                
-## 19619:                               NA                NA                
-## 19620:                               NA                NA                
-## 19621:                               NA                NA                
-## 19622:         #DIV/0!                0                 0         #DIV/0!
-##        amplitude_roll_forearm amplitude_pitch_forearm
-##     1:                     NA                      NA
-##     2:                     NA                      NA
-##     3:                     NA                      NA
-##     4:                     NA                      NA
-##     5:                     NA                      NA
-##    ---                                               
-## 19618:                     NA                      NA
-## 19619:                     NA                      NA
-## 19620:                     NA                      NA
-## 19621:                     NA                      NA
-## 19622:                      0                       0
-##        amplitude_yaw_forearm total_accel_forearm var_accel_forearm
-##     1:                                        36                NA
-##     2:                                        36                NA
-##     3:                                        36                NA
-##     4:                                        36                NA
-##     5:                                        36                NA
-##    ---                                                            
-## 19618:                                        29                NA
-## 19619:                                        29                NA
-## 19620:                                        29                NA
-## 19621:                                        32                NA
-## 19622:               #DIV/0!                  33             30.11
-##        avg_roll_forearm stddev_roll_forearm var_roll_forearm
-##     1:               NA                  NA               NA
-##     2:               NA                  NA               NA
-##     3:               NA                  NA               NA
-##     4:               NA                  NA               NA
-##     5:               NA                  NA               NA
-##    ---                                                      
-## 19618:               NA                  NA               NA
-## 19619:               NA                  NA               NA
-## 19620:               NA                  NA               NA
-## 19621:               NA                  NA               NA
-## 19622:                0                   0                0
-##        avg_pitch_forearm stddev_pitch_forearm var_pitch_forearm
-##     1:                NA                   NA                NA
-##     2:                NA                   NA                NA
-##     3:                NA                   NA                NA
-##     4:                NA                   NA                NA
-##     5:                NA                   NA                NA
-##    ---                                                         
-## 19618:                NA                   NA                NA
-## 19619:                NA                   NA                NA
-## 19620:                NA                   NA                NA
-## 19621:                NA                   NA                NA
-## 19622:                 0                    0                 0
-##        avg_yaw_forearm stddev_yaw_forearm var_yaw_forearm gyros_forearm_x
-##     1:              NA                 NA              NA            0.03
-##     2:              NA                 NA              NA            0.02
-##     3:              NA                 NA              NA            0.03
-##     4:              NA                 NA              NA            0.02
-##     5:              NA                 NA              NA            0.02
-##    ---                                                                   
-## 19618:              NA                 NA              NA            1.73
-## 19619:              NA                 NA              NA            1.59
-## 19620:              NA                 NA              NA            1.54
-## 19621:              NA                 NA              NA            1.48
-## 19622:               0                  0               0            1.38
-##        gyros_forearm_y gyros_forearm_z accel_forearm_x accel_forearm_y
-##     1:            0.00           -0.02             192             203
-##     2:            0.00           -0.02             192             203
-##     3:           -0.02            0.00             196             204
-##     4:           -0.02            0.00             189             206
-##     5:            0.00           -0.02             189             206
-##    ---                                                                
-## 19618:           -1.75           -0.25            -271             -68
-## 19619:           -1.36            0.00            -271             -91
-## 19620:           -1.20            0.05            -263             -99
-## 19621:           -0.90            0.05            -270            -141
-## 19622:           -0.64            0.08            -278            -159
-##        accel_forearm_z magnet_forearm_x magnet_forearm_y magnet_forearm_z
-##     1:            -215              -17              654              476
-##     2:            -216              -18              661              473
-##     3:            -213              -18              658              469
-##     4:            -214              -16              658              469
-##     5:            -214              -17              655              473
-##    ---                                                                   
-## 19618:             -37             -205             -587                6
-## 19619:             -43             -151             -635              -36
-## 19620:             -45             -116             -654              -70
-## 19621:             -51              -68             -678              -98
-## 19622:             -52              -60             -686             -110
-##        classe
-##     1:      A
-##     2:      A
-##     3:      A
-##     4:      A
-##     5:      A
-##    ---       
-## 19618:      E
-## 19619:      E
-## 19620:      E
-## 19621:      E
-## 19622:      E
+## Classes 'data.table' and 'data.frame':	19622 obs. of  159 variables:
+##  $ user_name               : chr  "carlitos" "carlitos" "carlitos" "carlitos" ...
+##  $ raw_timestamp_part_1    : int  1323084231 1323084231 1323084231 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 ...
+##  $ raw_timestamp_part_2    : int  788290 808298 820366 120339 196328 304277 368296 440390 484323 484434 ...
+##  $ cvtd_timestamp          : chr  "05/12/2011 11:23" "05/12/2011 11:23" "05/12/2011 11:23" "05/12/2011 11:23" ...
+##  $ new_window              : chr  "no" "no" "no" "no" ...
+##  $ num_window              : int  11 11 11 12 12 12 12 12 12 12 ...
+##  $ classe                  : Factor w/ 5 levels "A","B","C","D",..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ roll_belt               : num  1.41 1.41 1.42 1.48 1.48 1.45 1.42 1.42 1.43 1.45 ...
+##  $ pitch_belt              : num  8.07 8.07 8.07 8.05 8.07 8.06 8.09 8.13 8.16 8.17 ...
+##  $ yaw_belt                : num  -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 ...
+##  $ total_accel_belt        : num  3 3 3 3 3 3 3 3 3 3 ...
+##  $ kurtosis_roll_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_belt     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_belt.1    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_belt     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_pitch_belt    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_yaw_belt      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_total_accel_belt    : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_roll_belt        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_roll_belt           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_pitch_belt       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_pitch_belt          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_yaw_belt         : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_yaw_belt            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ gyros_belt_x            : num  0 0.02 0 0.02 0.02 0.02 0.02 0.02 0.02 0.03 ...
+##  $ gyros_belt_y            : num  0 0 0 0 0.02 0 0 0 0 0 ...
+##  $ gyros_belt_z            : num  -0.02 -0.02 -0.02 -0.03 -0.02 -0.02 -0.02 -0.02 -0.02 0 ...
+##  $ accel_belt_x            : num  -21 -22 -20 -22 -21 -21 -22 -22 -20 -21 ...
+##  $ accel_belt_y            : num  4 4 5 3 2 4 3 4 2 4 ...
+##  $ accel_belt_z            : num  22 22 23 21 24 21 21 21 24 22 ...
+##  $ magnet_belt_x           : num  -3 -7 -2 -6 -6 0 -4 -2 1 -3 ...
+##  $ magnet_belt_y           : num  599 608 600 604 600 603 599 603 602 609 ...
+##  $ magnet_belt_z           : num  -313 -311 -305 -310 -302 -312 -311 -313 -312 -308 ...
+##  $ roll_arm                : num  -128 -128 -128 -128 -128 -128 -128 -128 -128 -128 ...
+##  $ pitch_arm               : num  22.5 22.5 22.5 22.1 22.1 22 21.9 21.8 21.7 21.6 ...
+##  $ yaw_arm                 : num  -161 -161 -161 -161 -161 -161 -161 -161 -161 -161 ...
+##  $ total_accel_arm         : num  34 34 34 34 34 34 34 34 34 34 ...
+##  $ var_accel_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_roll_arm         : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_pitch_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ avg_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ stddev_yaw_arm          : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ var_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ gyros_arm_x             : num  0 0.02 0.02 0.02 0 0.02 0 0.02 0.02 0.02 ...
+##  $ gyros_arm_y             : num  0 -0.02 -0.02 -0.03 -0.03 -0.03 -0.03 -0.02 -0.03 -0.03 ...
+##  $ gyros_arm_z             : num  -0.02 -0.02 -0.02 0.02 0 0 0 0 -0.02 -0.02 ...
+##  $ accel_arm_x             : num  -288 -290 -289 -289 -289 -289 -289 -289 -288 -288 ...
+##  $ accel_arm_y             : num  109 110 110 111 111 111 111 111 109 110 ...
+##  $ accel_arm_z             : num  -123 -125 -126 -123 -123 -122 -125 -124 -122 -124 ...
+##  $ magnet_arm_x            : num  -368 -369 -368 -372 -374 -369 -373 -372 -369 -376 ...
+##  $ magnet_arm_y            : num  337 337 344 344 337 342 336 338 341 334 ...
+##  $ magnet_arm_z            : num  516 513 513 512 506 513 509 510 518 516 ...
+##  $ kurtosis_roll_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_pitch_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_arm        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_arm            : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_arm           : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_arm             : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_arm      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_pitch_arm     : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_yaw_arm       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ roll_dumbbell           : num  13.1 13.1 12.9 13.4 13.4 ...
+##  $ pitch_dumbbell          : num  -70.5 -70.6 -70.3 -70.4 -70.4 ...
+##  $ yaw_dumbbell            : num  -84.9 -84.7 -85.1 -84.9 -84.9 ...
+##  $ kurtosis_roll_dumbbell  : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_picth_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ kurtosis_yaw_dumbbell   : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_roll_dumbbell  : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_pitch_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ skewness_yaw_dumbbell   : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_roll_dumbbell       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_picth_dumbbell      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ max_yaw_dumbbell        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_roll_dumbbell       : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_pitch_dumbbell      : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ min_yaw_dumbbell        : num  NA NA NA NA NA NA NA NA NA NA ...
+##  $ amplitude_roll_dumbbell : num  NA NA NA NA NA NA NA NA NA NA ...
+##   [list output truncated]
+##  - attr(*, ".internal.selfref")=<externalptr>
 ```
 
-Do some minor data tidying.
 
-* Drop the `V1` variable (it's just a row number)
+# Build a prediction model
+
+Use recursive partitioning and regression trees.
 
 
 ```r
-DTrain <- DTrain[, V1 := NULL]
+require(rpart)
+```
+
+```
+## Loading required package: rpart
+```
+
+```r
+F <- as.formula(paste("classe ~ user_name +", paste(colNames[colNumeric], collapse="+")))
+M <- rpart(F, DTrain)
+plot(M)
+text(M)
+```
+
+![plot of chunk modelRPart](./predictionAssignment_files/figure-html/modelRPart.png) 
+
+```r
+yHat <- predict(M, type="class")
+table(yHat, DTrain[, classe])
+```
+
+```
+##     
+## yHat    A    B    C    D    E
+##    A 4984  585   51  185   63
+##    B  178 2414  310  277  316
+##    C  139  367 2778  482  437
+##    D  183  246  193 2045  185
+##    E   96  185   90  227 2606
 ```
