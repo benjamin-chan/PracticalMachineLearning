@@ -328,37 +328,162 @@ str(DTrain)
 
 # Build a prediction model
 
-Use recursive partitioning and regression trees.
+Use the caret package.
 
 
 ```r
-require(rpart)
+require(caret)
+```
+
+```
+## Loading required package: caret
+## Loading required package: lattice
+## Loading required package: ggplot2
+```
+
+Set the control parameters. Set the `allowParallel` parameter to `FALSE`. I get a `could not find function "rbind.fill"` error when I try to parallelize the model fitting.
+
+
+```r
+ctrl <- trainControl(classProbs=TRUE,
+                     savePredictions=TRUE,
+                     allowParallel=TRUE)
+```
+
+Set up tuning grid.
+
+
+```r
+tuneGrid <- expand.grid(cp=seq(0, 1, length=6))
+tuneGrid
+```
+
+```
+##    cp
+## 1 0.0
+## 2 0.2
+## 3 0.4
+## 4 0.6
+## 5 0.8
+## 6 1.0
+```
+
+Set up the parallel clusters. Do not evaluate due to rbind.fill error described above.
+
+
+```r
+require(parallel)
+```
+
+```
+## Loading required package: parallel
+```
+
+```r
+require(doParallel)
+```
+
+```
+## Loading required package: doParallel
+## Loading required package: foreach
+## Loading required package: iterators
+```
+
+```r
+cl <- makeCluster(4)
+registerDoParallel(cl)
+```
+
+Fit model over the tuning parameters.
+
+
+```r
+M <- train(x=DTrain[, colNumeric, with=FALSE],
+           y=DTrain[, classe],
+           method="rpart")
 ```
 
 ```
 ## Loading required package: rpart
 ```
 
+Stop the clusters.
+
+
 ```r
-F <- as.formula(paste("classe ~ user_name +", paste(colNames[colNumeric], collapse="+")))
-M <- rpart(F, DTrain)
+stopCluster(cl)
+```
+
+Evaluate the model.
+
+
+```r
+M
+```
+
+```
+## CART 
+## 
+## 19622 samples
+##   152 predictor
+##     5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## No pre-processing
+## Resampling: Bootstrapped (25 reps) 
+## 
+## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
+## 
+## Resampling results across tuning parameters:
+## 
+##   cp   Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.2  0.7       0.6    0.08         0.1     
+##   0.3  0.6       0.4    0.09         0.1     
+##   0.3  0.4       0.2    0.09         0.2     
+## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was cp = 0.2437.
+```
+
+```r
+confusionMatrix(predict(M), DTrain[, classe])
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 5580    0    0    0    0
+##          B    0 3797    0    0    0
+##          C    0    0    0    0    0
+##          D    0    0    0    0    0
+##          E    0    0 3422 3216 3607
+## 
+## Overall Statistics
+##                                         
+##                Accuracy : 0.662         
+##                  95% CI : (0.655, 0.668)
+##     No Information Rate : 0.284         
+##     P-Value [Acc > NIR] : <2e-16        
+##                                         
+##                   Kappa : 0.569         
+##  Mcnemar's Test P-Value : NA            
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity             1.000    1.000    0.000    0.000    1.000
+## Specificity             1.000    1.000    1.000    1.000    0.586
+## Pos Pred Value          1.000    1.000      NaN      NaN    0.352
+## Neg Pred Value          1.000    1.000    0.826    0.836    1.000
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.284    0.194    0.000    0.000    0.184
+## Detection Prevalence    0.284    0.194    0.000    0.000    0.522
+## Balanced Accuracy       1.000    1.000    0.500    0.500    0.793
+```
+
+```r
 plot(M)
-text(M)
 ```
 
-![plot of chunk modelRPart](./predictionAssignment_files/figure-html/modelRPart.png) 
-
-```r
-yHat <- predict(M, type="class")
-table(yHat, DTrain[, classe])
-```
-
-```
-##     
-## yHat    A    B    C    D    E
-##    A 4984  585   51  185   63
-##    B  178 2414  310  277  316
-##    C  139  367 2778  482  437
-##    D  183  246  193 2045  185
-##    E   96  185   90  227 2606
-```
+![plot of chunk unnamed-chunk-11](./predictionAssignment_files/figure-html/unnamed-chunk-11.png) 

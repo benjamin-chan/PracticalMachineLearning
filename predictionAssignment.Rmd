@@ -80,14 +80,54 @@ str(DTrain)
 
 # Build a prediction model
 
-Use recursive partitioning and regression trees.
+Use the caret package.
 
-```{r modelRPart, fig.width=15}
-require(rpart)
-F <- as.formula(paste("classe ~ user_name +", paste(colNames[colNumeric], collapse="+")))
-M <- rpart(F, DTrain)
+```{r}
+require(caret)
+```
+
+Set the control parameters. Set the `allowParallel` parameter to `FALSE`. I get a `could not find function "rbind.fill"` error when I try to parallelize the model fitting.
+
+```{r}
+ctrl <- trainControl(classProbs=TRUE,
+                     savePredictions=TRUE,
+                     allowParallel=TRUE)
+```
+
+Set up tuning grid.
+
+```{r}
+tuneGrid <- expand.grid(cp=seq(0, 1, length=6))
+tuneGrid
+```
+
+Set up the parallel clusters. Do not evaluate due to rbind.fill error described above.
+
+```{r}
+require(parallel)
+require(doParallel)
+cl <- makeCluster(4)
+registerDoParallel(cl)
+```
+
+Fit model over the tuning parameters.
+
+```{r}
+M <- train(x=DTrain[, colNumeric, with=FALSE],
+           y=DTrain[, classe],
+           method="rpart")
+```
+
+Stop the clusters.
+
+```{r}
+stopCluster(cl)
+```
+
+Evaluate the model.
+
+```{r}
+M
+confusionMatrix(predict(M), DTrain[, classe])
 plot(M)
-text(M)
-yHat <- predict(M, type="class")
-table(yHat, DTrain[, classe])
 ```
