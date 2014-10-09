@@ -44,10 +44,10 @@ Read the training data into a data table.
 Drop the `V1` variable (it's just a row number)
 
 ```{r}
+setwd("~/GitHub Repositories/Coursera/PracticalMachineLearning")
 require(data.table)
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-colNames <- names(fread(url, nrow=0))
 drop <- c("V1")
 DTrain <- fread(url, drop=drop)
 ```
@@ -86,7 +86,16 @@ Use the caret package.
 require(caret)
 ```
 
-Set the control parameters. Set the `allowParallel` parameter to `FALSE`. I get a `could not find function "rbind.fill"` error when I try to parallelize the model fitting.
+Set up the parallel clusters.
+
+```{r}
+require(parallel)
+require(doParallel)
+cl <- makeCluster(3)
+registerDoParallel(cl)
+```
+
+Set the control parameters.
 
 ```{r}
 ctrl <- trainControl(classProbs=TRUE,
@@ -94,28 +103,14 @@ ctrl <- trainControl(classProbs=TRUE,
                      allowParallel=TRUE)
 ```
 
-Set up tuning grid.
-
-```{r}
-tuneGrid <- expand.grid(cp=seq(0, 1, length=6))
-tuneGrid
-```
-
-Set up the parallel clusters. Do not evaluate due to rbind.fill error described above.
-
-```{r}
-require(parallel)
-require(doParallel)
-cl <- makeCluster(4)
-registerDoParallel(cl)
-```
-
 Fit model over the tuning parameters.
 
 ```{r}
 M <- train(x=DTrain[, colNumeric, with=FALSE],
            y=DTrain[, classe],
-           method="rpart")
+           method="rpart",
+           preProcess=c("center", "scale"),
+           trControl=ctrl)
 ```
 
 Stop the clusters.
