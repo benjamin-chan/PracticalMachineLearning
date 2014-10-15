@@ -52,9 +52,9 @@ DTrain <- fread(url)
 Make `classe` into a factor.
 
 ```{r}
-DTrain <- DTrain[, classe := factor(classe)]
-str(DTrain[, classe])
-DTrain[, .N, classe]
+classe <- factor(DTrain[, classe])
+is.factor(classe)
+table(classe)
 ```
 
 Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
@@ -64,7 +64,8 @@ These will be the predictor variables.
 regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
 predVarCol <- grep(regex, names(DTrain))
 predVar <- DTrain[, predVarCol, with=FALSE]
-DTrain <- data.table(DTrain[, list(classe)], predVar)
+DTrain <- data.table(classe, predVar)
+str(DTrain)
 ```
 
 
@@ -93,14 +94,22 @@ ctrl <- trainControl(classProbs=TRUE,
                      allowParallel=TRUE)
 ```
 
+Preprocess with PCA.
+
+```{r}
+preProc <- preProcess(predVar, method="pca")
+trainPC <- predict(preProc, predVar)
+# M1 <- train(classe ~ ., data=trainPC, method="glm")
+# testPC <- predict(preProc, testing[predVar])
+# hat1 <- predict(M1, testPC)
+# confusionMatrix(testing$diagnosis, hat1)
+```
+
 Fit model over the tuning parameters.
 
 ```{r}
-M <- train(classe ~ .,
-           data=DTrain,
-           method="rf",
-           preProcess=c("center", "scale"),
-           trControl=ctrl)
+M0 <- train(classe ~ ., data=predVar, method="rpart", trControl=ctrl)
+M1 <- train(classe ~ ., data=trainPC, method="rpart", trControl=ctrl)
 ```
 
 Stop the clusters.
@@ -112,7 +121,8 @@ stopCluster(cl)
 Evaluate the model.
 
 ```{r}
-M
-confusionMatrix(predict(M), DTrain[, .outcome])
-plot(M)
+M0
+confusionMatrix(predict(M0), classe)
+M1
+confusionMatrix(predict(M1), classe)
 ```
