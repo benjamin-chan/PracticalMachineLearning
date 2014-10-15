@@ -15,8 +15,16 @@ set.seed(975)
 inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
 training = mixtures[ inTrain,]
 testing = mixtures[-inTrain,]
-ggplot(training, aes(x=trainIndex, y=CompressiveStrength)) +
-  geom_line()
+# Make a plot of the outcome (CompressiveStrength) versus the index of the samples.
+# Color by each of the variables in the data set (you may find the cut2() function in the Hmisc package useful for turning continuous covariates into factors).
+# What do you notice in these plots?
+training$index <- seq(1, nrow(training))
+require(reshape2)
+D <- melt(training, id.var=c("index"))
+ggplot(D, aes(x=index, y=value, color=variable)) +
+  geom_point(alpha=1/2) +
+  facet_wrap(~ variable, nrow=3, scales="free_y") +
+  theme(legend.position="none")
 # Question 3
 library(AppliedPredictiveModeling)
 data(concrete)
