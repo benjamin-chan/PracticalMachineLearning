@@ -41,40 +41,30 @@ output:
 # Get the training data
 
 Read the training data into a data table.
-Drop the `V1` variable (it's just a row number)
 
 ```{r}
-setwd("~/GitHub Repositories/Coursera/PracticalMachineLearning")
 require(data.table)
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-drop <- c("V1")
-DTrain <- fread(url, drop=drop)
+DTrain <- fread(url)
 ```
 
 Make `classe` into a factor.
 
 ```{r}
 DTrain <- DTrain[, classe := factor(classe)]
-is.factor(DTrain[, classe])
+str(DTrain[, classe])
 DTrain[, .N, classe]
 ```
 
-Change the *belt*, *arm*, *dumbbell*, and *forearm* columns to numeric.
-Ignore the warnings.
+Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
+These will be the predictor variables.
 
 ```{r}
-colNames <- names(DTrain)
-colNumeric <- grep("belt|arm|dumbbell|forearm", colNames)
-colNonNumeric <- grep("belt|arm|dumbbell|forearm", colNames, invert=TRUE)
-DTrain <- data.table(DTrain[, colNonNumeric, with=FALSE], data.matrix(DTrain[, colNumeric, with=FALSE]))
-```
-
-Get a *feel* for the training data.
-
-```{r}
-names(DTrain)
-str(DTrain)
+regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
+predVarCol <- grep(regex, names(DTrain))
+predVar <- DTrain[, predVarCol, with=FALSE]
+DTrain <- data.table(DTrain[, list(classe)], predVar)
 ```
 
 
@@ -106,9 +96,9 @@ ctrl <- trainControl(classProbs=TRUE,
 Fit model over the tuning parameters.
 
 ```{r}
-M <- train(x=DTrain[, colNumeric, with=FALSE],
-           y=DTrain[, classe],
-           method="rpart",
+M <- train(classe ~ .,
+           data=DTrain,
+           method="rf",
            preProcess=c("center", "scale"),
            trControl=ctrl)
 ```
@@ -123,6 +113,6 @@ Evaluate the model.
 
 ```{r}
 M
-confusionMatrix(predict(M), DTrain[, classe])
+confusionMatrix(predict(M), DTrain[, .outcome])
 plot(M)
 ```
