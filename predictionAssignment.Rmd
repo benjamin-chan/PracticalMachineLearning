@@ -82,7 +82,7 @@ Set up the parallel clusters.
 ```{r}
 require(parallel)
 require(doParallel)
-cl <- makeCluster(3)
+cl <- makeCluster(2)
 registerDoParallel(cl)
 ```
 
@@ -108,8 +108,9 @@ trainPC <- predict(preProc, predVar)
 Fit model over the tuning parameters.
 
 ```{r}
-M0 <- train(classe ~ ., data=predVar, method="rpart", trControl=ctrl)
-M1 <- train(classe ~ ., data=trainPC, method="rpart", trControl=ctrl)
+method <- "knn"
+M0 <- train(classe ~ ., data=predVar, method=method, trControl=ctrl)
+M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
 ```
 
 Stop the clusters.
