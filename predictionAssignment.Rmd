@@ -132,8 +132,9 @@ trainPC <- predict(preProc, predVar)
 Fit model over the tuning parameters.
 
 ```{r}
-M0 <- train(classe ~ ., data=predVar, method="rpart", trControl=ctrl)
-M1 <- train(classe ~ ., data=trainPC, method="rpart", trControl=ctrl)
+method <- "ctree"
+M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
+M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
 ```
 
 Stop the clusters.

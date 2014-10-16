@@ -48,14 +48,14 @@ require(data.table)
 ```r
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-DTrain <- fread(url)
+D <- fread(url)
 ```
 
 Make `classe` into a factor.
 
 
 ```r
-classe <- factor(DTrain[, classe])
+classe <- factor(D[, classe])
 is.factor(classe)
 ```
 
@@ -75,12 +75,13 @@ table(classe)
 
 Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
 These will be the predictor variables.
+There are a lot of missing values in the other variables.
 
 
 ```r
 regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
-predVarCol <- grep(regex, names(DTrain))
-predVar <- DTrain[, predVarCol, with=FALSE]
+predVarCol <- grep(regex, names(D))
+predVar <- D[, predVarCol, with=FALSE]
 DTrain <- data.table(classe, predVar)
 str(DTrain)
 ```
@@ -143,10 +144,15 @@ str(DTrain)
 ##  - attr(*, ".internal.selfref")=<externalptr>
 ```
 
+```r
+sum(is.na(DTrain))
+```
 
-# Build a prediction model
+```
+## [1] 0
+```
 
-Use the caret package.
+Preprocess the prediction variables by centering and scaling.
 
 
 ```r
@@ -158,6 +164,129 @@ require(caret)
 ## Loading required package: lattice
 ## Loading required package: ggplot2
 ```
+
+```r
+preProc <- preProcess(predVar)
+preProc
+```
+
+```
+## 
+## Call:
+## preProcess.default(x = predVar)
+## 
+## Created from 19622 samples and 52 variables
+## Pre-processing: centered, scaled
+```
+
+```r
+DTrainCS <- data.table(classe, predict(preProc, predVar))
+```
+
+Examine groups of prediction variables.
+
+
+```r
+histGroup <- function (data, regex) {
+  col <- grep(regex, names(data))
+  require(reshape2)
+  n <- nrow(data)
+  DMelted <- melt(data[, col, with=FALSE][, rownum := seq(1, n)], id.vars="rownum")
+  require(ggplot2)
+  ggplot(DMelted, aes(x=value)) +
+    geom_histogram() +
+    facet_wrap(~ variable, scale="free_x")
+}
+histGroup(DTrainCS, "belt")
+```
+
+```
+## Loading required package: reshape2
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![plot of chunk unnamed-chunk-5](./predictionAssignment_files/figure-html/unnamed-chunk-51.png) 
+
+```r
+histGroup(DTrainCS, "[^(fore)]arm")
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![plot of chunk unnamed-chunk-5](./predictionAssignment_files/figure-html/unnamed-chunk-52.png) 
+
+```r
+histGroup(DTrainCS, "dumbbell")
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![plot of chunk unnamed-chunk-5](./predictionAssignment_files/figure-html/unnamed-chunk-53.png) 
+
+```r
+histGroup(DTrainCS, "forearm")
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![plot of chunk unnamed-chunk-5](./predictionAssignment_files/figure-html/unnamed-chunk-54.png) 
+
+
+# Build a prediction model
 
 Set up the parallel clusters.
 
@@ -210,15 +339,29 @@ Fit model over the tuning parameters.
 
 
 ```r
-M0 <- train(classe ~ ., data=predVar, method="rpart", trControl=ctrl)
+method <- "ctree"
+M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
 ```
 
 ```
-## Loading required package: rpart
+## Loading required package: party
+## Loading required package: grid
+## Loading required package: zoo
+## 
+## Attaching package: 'zoo'
+## 
+## The following objects are masked from 'package:base':
+## 
+##     as.Date, as.Date.numeric
+## 
+## Loading required package: sandwich
+## Loading required package: strucchange
+## Loading required package: modeltools
+## Loading required package: stats4
 ```
 
 ```r
-M1 <- train(classe ~ ., data=trainPC, method="rpart", trControl=ctrl)
+M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
 ```
 
 Stop the clusters.
@@ -236,10 +379,10 @@ M0
 ```
 
 ```
-## CART 
+## Conditional Inference Tree 
 ## 
 ## 19622 samples
-##    51 predictor
+##    52 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
@@ -249,13 +392,13 @@ M0
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   cp    Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.04  0.5       0.36   0.02         0.03    
-##   0.06  0.4       0.23   0.07         0.11    
-##   0.12  0.3       0.07   0.04         0.06    
+##   mincriterion  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.01          0.9       0.9    0.008        0.01    
+##   0.50          0.9       0.9    0.009        0.01    
+##   0.99          0.9       0.9    0.009        0.01    
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was cp = 0.03568.
+## The final value used for the model was mincriterion = 0.01.
 ```
 
 ```r
@@ -267,33 +410,33 @@ confusionMatrix(predict(M0), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5080 1581 1587 1449  524
-##          B   81 1286  108  568  486
-##          C  405  930 1727 1199  966
-##          D    0    0    0    0    0
-##          E   14    0    0    0 1631
+##          A 5435  113   26   48   15
+##          B   78 3504  100   62   64
+##          C   18   87 3225   97   40
+##          D   39   53   48 2980   40
+##          E   10   40   23   29 3448
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.496         
-##                  95% CI : (0.489, 0.503)
+##                Accuracy : 0.948         
+##                  95% CI : (0.944, 0.951)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : <2e-16        
+##     P-Value [Acc > NIR] : < 2e-16       
 ##                                         
-##                   Kappa : 0.341         
-##  Mcnemar's Test P-Value : NA            
+##                   Kappa : 0.934         
+##  Mcnemar's Test P-Value : 1.8e-05       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.910   0.3387    0.505    0.000   0.4522
-## Specificity             0.634   0.9215    0.784    1.000   0.9991
-## Pos Pred Value          0.497   0.5085    0.330      NaN   0.9915
-## Neg Pred Value          0.947   0.8531    0.882    0.836   0.8901
-## Prevalence              0.284   0.1935    0.174    0.164   0.1838
-## Detection Rate          0.259   0.0655    0.088    0.000   0.0831
-## Detection Prevalence    0.521   0.1289    0.266    0.000   0.0838
-## Balanced Accuracy       0.772   0.6301    0.644    0.500   0.7257
+## Sensitivity             0.974    0.923    0.942    0.927    0.956
+## Specificity             0.986    0.981    0.985    0.989    0.994
+## Pos Pred Value          0.964    0.920    0.930    0.943    0.971
+## Neg Pred Value          0.990    0.981    0.988    0.986    0.990
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.277    0.179    0.164    0.152    0.176
+## Detection Prevalence    0.287    0.194    0.177    0.161    0.181
+## Balanced Accuracy       0.980    0.952    0.964    0.958    0.975
 ```
 
 ```r
@@ -301,7 +444,7 @@ M1
 ```
 
 ```
-## CART 
+## Conditional Inference Tree 
 ## 
 ## 19622 samples
 ##    24 predictor
@@ -314,13 +457,13 @@ M1
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   cp    Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.04  0.4       0.21   0.03         0.04    
-##   0.06  0.4       0.13   0.02         0.04    
-##   0.07  0.3       0.04   0.03         0.04    
+##   mincriterion  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.01          0.8       0.7    0.008        0.01    
+##   0.50          0.8       0.7    0.008        0.01    
+##   0.99          0.8       0.7    0.008        0.01    
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was cp = 0.03846.
+## The final value used for the model was mincriterion = 0.01.
 ```
 
 ```r
@@ -332,31 +475,31 @@ confusionMatrix(predict(M1), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5145 2558 3210 1701 2013
-##          B    0    0    0    0    0
-##          C    0    0    0    0    0
-##          D  373  729  154 1258  511
-##          E   62  510   58  257 1083
+##          A 5207  189  115   94   80
+##          B  133 3283  169   80  130
+##          C   76  132 2902  126   88
+##          D   89   78  140 2809   88
+##          E   75  115   96  107 3221
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.382         
-##                  95% CI : (0.375, 0.388)
+##                Accuracy : 0.888         
+##                  95% CI : (0.883, 0.892)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : <2e-16        
+##     P-Value [Acc > NIR] : < 2e-16       
 ##                                         
-##                   Kappa : 0.169         
-##  Mcnemar's Test P-Value : NA            
+##                   Kappa : 0.858         
+##  Mcnemar's Test P-Value : 0.00321       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.922    0.000    0.000   0.3912   0.3002
-## Specificity             0.325    1.000    1.000   0.8923   0.9446
-## Pos Pred Value          0.352      NaN      NaN   0.4159   0.5497
-## Neg Pred Value          0.913    0.806    0.826   0.8820   0.8570
-## Prevalence              0.284    0.194    0.174   0.1639   0.1838
-## Detection Rate          0.262    0.000    0.000   0.0641   0.0552
-## Detection Prevalence    0.745    0.000    0.000   0.1542   0.1004
-## Balanced Accuracy       0.623    0.500    0.500   0.6417   0.6224
+## Sensitivity             0.933    0.865    0.848    0.873    0.893
+## Specificity             0.966    0.968    0.974    0.976    0.975
+## Pos Pred Value          0.916    0.865    0.873    0.877    0.891
+## Neg Pred Value          0.973    0.968    0.968    0.975    0.976
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.265    0.167    0.148    0.143    0.164
+## Detection Prevalence    0.290    0.193    0.169    0.163    0.184
+## Balanced Accuracy       0.950    0.916    0.911    0.925    0.934
 ```
