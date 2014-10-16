@@ -46,36 +46,60 @@ Read the training data into a data table.
 require(data.table)
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-DTrain <- fread(url)
+D <- fread(url)
 ```
 
 Make `classe` into a factor.
 
 ```{r}
-classe <- factor(DTrain[, classe])
+classe <- factor(D[, classe])
 is.factor(classe)
 table(classe)
 ```
 
 Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
 These will be the predictor variables.
+There are a lot of missing values in the other variables.
 
 ```{r}
 regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
-predVarCol <- grep(regex, names(DTrain))
-predVar <- DTrain[, predVarCol, with=FALSE]
+predVarCol <- grep(regex, names(D))
+predVar <- D[, predVarCol, with=FALSE]
 DTrain <- data.table(classe, predVar)
 str(DTrain)
+sum(is.na(DTrain))
+```
+
+Preprocess the prediction variables by centering and scaling.
+
+```{r}
+require(caret)
+preProc <- preProcess(predVar)
+preProc
+DTrainCS <- data.table(classe, predict(preProc, predVar))
+```
+
+Examine groups of prediction variables.
+
+```{r}
+histGroup <- function (data, regex) {
+  col <- grep(regex, names(data))
+  require(reshape2)
+  n <- nrow(data)
+  DMelted <- melt(data[, col, with=FALSE][, rownum := seq(1, n)], id.vars="rownum")
+  require(ggplot2)
+  ggplot(DMelted, aes(x=value)) +
+    geom_histogram() +
+    facet_wrap(~ variable, scale="free_x")
+}
+histGroup(DTrainCS, "belt")
+histGroup(DTrainCS, "[^(fore)]arm")
+histGroup(DTrainCS, "dumbbell")
+histGroup(DTrainCS, "forearm")
 ```
 
 
 # Build a prediction model
-
-Use the caret package.
-
-```{r}
-require(caret)
-```
 
 Set up the parallel clusters.
 
