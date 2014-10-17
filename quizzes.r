@@ -23,9 +23,14 @@ require(reshape2)
 D <- melt(training, id.var=c("index"))
 ggplot(D, aes(x=index, y=value, color=variable)) +
   geom_point(alpha=1/2) +
+  geom_smooth(alpha=1/2) +
   facet_wrap(~ variable, nrow=3, scales="free_y") +
   theme(legend.position="none")
-# Question 3
+ggplot(training, aes(x=Cement, y=CompressiveStrength)) +
+  geom_point(alpha=1/2) +
+  geom_smooth(alpha=1/2) +
+  geom_rug(alpha=1/4)
+  # Question 3
 library(AppliedPredictiveModeling)
 data(concrete)
 library(caret)
