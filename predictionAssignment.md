@@ -339,18 +339,13 @@ Fit model over the tuning parameters.
 
 
 ```r
-method <- "mda"
+method <- "C5.0"
 M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
 ```
 
 ```
-## Loading required package: mda
-## Loading required package: class
-## Loaded mda 0.4-4
-```
-
-```
-## Warning: There were missing values in resampled performance measures.
+## Loading required package: C50
+## Loading required package: plyr
 ```
 
 ```r
@@ -372,7 +367,7 @@ M0
 ```
 
 ```
-## Mixture Discriminant Analysis 
+## C5.0 
 ## 
 ## 19622 samples
 ##    52 predictor
@@ -385,13 +380,23 @@ M0
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   subclasses  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   2           0.7       0.7    0.01         0.02    
-##   3           0.7       0.7    0.01         0.02    
-##   4           0.7       0.7    0.02         0.02    
+##   model  winnow  trials  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   rules  FALSE    1      1         1.0    0.003        0.003   
+##   rules  FALSE   10      1         1.0    0.001        0.002   
+##   rules  FALSE   20      1         1.0    0.001        0.001   
+##   rules   TRUE    1      1         1.0    0.003        0.004   
+##   rules   TRUE   10      1         1.0    0.001        0.001   
+##   rules   TRUE   20      1         1.0    0.001        0.001   
+##   tree   FALSE    1      1         0.9    0.004        0.005   
+##   tree   FALSE   10      1         1.0    0.001        0.002   
+##   tree   FALSE   20      1         1.0    0.001        0.002   
+##   tree    TRUE    1      1         0.9    0.004        0.005   
+##   tree    TRUE   10      1         1.0    0.001        0.002   
+##   tree    TRUE   20      1         1.0    0.001        0.001   
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was subclasses = 4.
+## The final values used for the model were trials = 20, model = rules
+##  and winnow = TRUE.
 ```
 
 ```r
@@ -403,33 +408,33 @@ confusionMatrix(predict(M0), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 4127  397  222    6   34
-##          B  260 2524  266   98  175
-##          C  545  531 2478  453  109
-##          D  627  269  358 2623  158
-##          E   21   76   98   36 3131
+##          A 5580    0    0    0    0
+##          B    0 3797    0    0    0
+##          C    0    0 3422    0    0
+##          D    0    0    0 3216    0
+##          E    0    0    0    0 3607
 ## 
 ## Overall Statistics
-##                                         
-##                Accuracy : 0.758         
-##                  95% CI : (0.752, 0.764)
-##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : <2e-16        
-##                                         
-##                   Kappa : 0.697         
-##  Mcnemar's Test P-Value : <2e-16        
+##                                 
+##                Accuracy : 1     
+##                  95% CI : (1, 1)
+##     No Information Rate : 0.284 
+##     P-Value [Acc > NIR] : <2e-16
+##                                 
+##                   Kappa : 1     
+##  Mcnemar's Test P-Value : NA    
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.740    0.665    0.724    0.816    0.868
-## Specificity             0.953    0.950    0.899    0.914    0.986
-## Pos Pred Value          0.862    0.760    0.602    0.650    0.931
-## Neg Pred Value          0.902    0.922    0.939    0.962    0.971
+## Sensitivity             1.000    1.000    1.000    1.000    1.000
+## Specificity             1.000    1.000    1.000    1.000    1.000
+## Pos Pred Value          1.000    1.000    1.000    1.000    1.000
+## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
 ## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.210    0.129    0.126    0.134    0.160
-## Detection Prevalence    0.244    0.169    0.210    0.206    0.171
-## Balanced Accuracy       0.846    0.807    0.812    0.865    0.927
+## Detection Rate          0.284    0.194    0.174    0.164    0.184
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000
 ```
 
 ```r
@@ -437,7 +442,7 @@ M1
 ```
 
 ```
-## Mixture Discriminant Analysis 
+## C5.0 
 ## 
 ## 19622 samples
 ##    24 predictor
@@ -450,13 +455,23 @@ M1
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   subclasses  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   2           0.5       0.4    0.02         0.03    
-##   3           0.5       0.4    0.02         0.02    
-##   4           0.6       0.4    0.02         0.03    
+##   model  winnow  trials  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   rules  FALSE    1      0.9       0.8    0.006        0.007   
+##   rules  FALSE   10      1.0       0.9    0.003        0.004   
+##   rules  FALSE   20      1.0       1.0    0.002        0.003   
+##   rules   TRUE    1      0.9       0.8    0.006        0.007   
+##   rules   TRUE   10      1.0       0.9    0.003        0.004   
+##   rules   TRUE   20      1.0       1.0    0.002        0.003   
+##   tree   FALSE    1      0.9       0.8    0.006        0.007   
+##   tree   FALSE   10      0.9       0.9    0.003        0.004   
+##   tree   FALSE   20      1.0       0.9    0.003        0.004   
+##   tree    TRUE    1      0.9       0.8    0.006        0.007   
+##   tree    TRUE   10      0.9       0.9    0.003        0.004   
+##   tree    TRUE   20      1.0       0.9    0.003        0.004   
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was subclasses = 4.
+## The final values used for the model were trials = 20, model = rules
+##  and winnow = TRUE.
 ```
 
 ```r
@@ -468,31 +483,31 @@ confusionMatrix(predict(M1), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3371  570  509  116   63
-##          B  424 1641  122  324  533
-##          C  832  632 2235  554  516
-##          D  800  475  296 2070  462
-##          E  153  479  260  152 2033
+##          A 5580    0    0    0    0
+##          B    0 3797    0    0    0
+##          C    0    0 3422    0    0
+##          D    0    0    0 3216    0
+##          E    0    0    0    0 3607
 ## 
 ## Overall Statistics
-##                                         
-##                Accuracy : 0.578         
-##                  95% CI : (0.571, 0.585)
-##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : <2e-16        
-##                                         
-##                   Kappa : 0.471         
-##  Mcnemar's Test P-Value : <2e-16        
+##                                 
+##                Accuracy : 1     
+##                  95% CI : (1, 1)
+##     No Information Rate : 0.284 
+##     P-Value [Acc > NIR] : <2e-16
+##                                 
+##                   Kappa : 1     
+##  Mcnemar's Test P-Value : NA    
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.604   0.4322    0.653    0.644    0.564
-## Specificity             0.910   0.9113    0.844    0.876    0.935
-## Pos Pred Value          0.728   0.5391    0.469    0.505    0.661
-## Neg Pred Value          0.853   0.8699    0.920    0.926    0.905
-## Prevalence              0.284   0.1935    0.174    0.164    0.184
-## Detection Rate          0.172   0.0836    0.114    0.105    0.104
-## Detection Prevalence    0.236   0.1551    0.243    0.209    0.157
-## Balanced Accuracy       0.757   0.6718    0.748    0.760    0.749
+## Sensitivity             1.000    1.000    1.000    1.000    1.000
+## Specificity             1.000    1.000    1.000    1.000    1.000
+## Pos Pred Value          1.000    1.000    1.000    1.000    1.000
+## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.284    0.194    0.174    0.164    0.184
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000
 ```
