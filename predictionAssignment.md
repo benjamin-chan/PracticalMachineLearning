@@ -339,12 +339,18 @@ Fit model over the tuning parameters.
 
 
 ```r
-method <- "lda"
+method <- "mda"
 M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
 ```
 
 ```
-## Loading required package: MASS
+## Loading required package: mda
+## Loading required package: class
+## Loaded mda 0.4-4
+```
+
+```
+## Warning: There were missing values in resampled performance measures.
 ```
 
 ```r
@@ -366,7 +372,7 @@ M0
 ```
 
 ```
-## Linear Discriminant Analysis 
+## Mixture Discriminant Analysis 
 ## 
 ## 19622 samples
 ##    52 predictor
@@ -377,12 +383,15 @@ M0
 ## 
 ## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
 ## 
-## Resampling results
+## Resampling results across tuning parameters:
 ## 
-##   Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.7       0.6    0.006        0.007   
+##   subclasses  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   2           0.7       0.7    0.01         0.02    
+##   3           0.7       0.7    0.01         0.02    
+##   4           0.7       0.7    0.02         0.02    
 ## 
-## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was subclasses = 4.
 ```
 
 ```r
@@ -394,33 +403,33 @@ confusionMatrix(predict(M0), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 4568  586  341  191  133
-##          B  121 2429  333  130  611
-##          C  444  455 2254  379  323
-##          D  429  148  411 2383  344
-##          E   18  179   83  133 2196
+##          A 4127  397  222    6   34
+##          B  260 2524  266   98  175
+##          C  545  531 2478  453  109
+##          D  627  269  358 2623  158
+##          E   21   76   98   36 3131
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.705         
-##                  95% CI : (0.698, 0.711)
+##                Accuracy : 0.758         
+##                  95% CI : (0.752, 0.764)
 ##     No Information Rate : 0.284         
 ##     P-Value [Acc > NIR] : <2e-16        
 ##                                         
-##                   Kappa : 0.626         
+##                   Kappa : 0.697         
 ##  Mcnemar's Test P-Value : <2e-16        
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.819    0.640    0.659    0.741    0.609
-## Specificity             0.911    0.924    0.901    0.919    0.974
-## Pos Pred Value          0.785    0.670    0.585    0.641    0.842
-## Neg Pred Value          0.927    0.914    0.926    0.948    0.917
+## Sensitivity             0.740    0.665    0.724    0.816    0.868
+## Specificity             0.953    0.950    0.899    0.914    0.986
+## Pos Pred Value          0.862    0.760    0.602    0.650    0.931
+## Neg Pred Value          0.902    0.922    0.939    0.962    0.971
 ## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.233    0.124    0.115    0.121    0.112
-## Detection Prevalence    0.297    0.185    0.196    0.189    0.133
-## Balanced Accuracy       0.865    0.782    0.780    0.830    0.792
+## Detection Rate          0.210    0.129    0.126    0.134    0.160
+## Detection Prevalence    0.244    0.169    0.210    0.206    0.171
+## Balanced Accuracy       0.846    0.807    0.812    0.865    0.927
 ```
 
 ```r
@@ -428,7 +437,7 @@ M1
 ```
 
 ```
-## Linear Discriminant Analysis 
+## Mixture Discriminant Analysis 
 ## 
 ## 19622 samples
 ##    24 predictor
@@ -439,12 +448,15 @@ M1
 ## 
 ## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
 ## 
-## Resampling results
+## Resampling results across tuning parameters:
 ## 
-##   Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.5       0.4    0.004        0.005   
+##   subclasses  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   2           0.5       0.4    0.02         0.03    
+##   3           0.5       0.4    0.02         0.02    
+##   4           0.6       0.4    0.02         0.03    
 ## 
-## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was subclasses = 4.
 ```
 
 ```r
@@ -456,31 +468,31 @@ confusionMatrix(predict(M1), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3646  860  901  235  312
-##          B  485 1644  363  542  715
-##          C  590  684 1771  491  455
-##          D  819  397  317 1676  484
-##          E   40  212   70  272 1641
+##          A 3371  570  509  116   63
+##          B  424 1641  122  324  533
+##          C  832  632 2235  554  516
+##          D  800  475  296 2070  462
+##          E  153  479  260  152 2033
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.529         
-##                  95% CI : (0.522, 0.536)
+##                Accuracy : 0.578         
+##                  95% CI : (0.571, 0.585)
 ##     No Information Rate : 0.284         
 ##     P-Value [Acc > NIR] : <2e-16        
 ##                                         
-##                   Kappa : 0.403         
+##                   Kappa : 0.471         
 ##  Mcnemar's Test P-Value : <2e-16        
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.653   0.4330   0.5175   0.5211   0.4549
-## Specificity             0.836   0.8670   0.8630   0.8771   0.9629
-## Pos Pred Value          0.612   0.4385   0.4437   0.4538   0.7342
-## Neg Pred Value          0.859   0.8644   0.8944   0.9033   0.8869
-## Prevalence              0.284   0.1935   0.1744   0.1639   0.1838
-## Detection Rate          0.186   0.0838   0.0903   0.0854   0.0836
-## Detection Prevalence    0.303   0.1911   0.2034   0.1882   0.1139
-## Balanced Accuracy       0.745   0.6500   0.6902   0.6991   0.7089
+## Sensitivity             0.604   0.4322    0.653    0.644    0.564
+## Specificity             0.910   0.9113    0.844    0.876    0.935
+## Pos Pred Value          0.728   0.5391    0.469    0.505    0.661
+## Neg Pred Value          0.853   0.8699    0.920    0.926    0.905
+## Prevalence              0.284   0.1935    0.174    0.164    0.184
+## Detection Rate          0.172   0.0836    0.114    0.105    0.104
+## Detection Prevalence    0.236   0.1551    0.243    0.209    0.157
+## Balanced Accuracy       0.757   0.6718    0.748    0.760    0.749
 ```
