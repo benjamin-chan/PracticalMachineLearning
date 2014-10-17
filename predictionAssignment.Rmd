@@ -106,7 +106,7 @@ Set up the parallel clusters.
 ```{r}
 require(parallel)
 require(doParallel)
-cl <- makeCluster(3)
+cl <- makeCluster(2)
 registerDoParallel(cl)
 ```
 
@@ -132,7 +132,7 @@ trainPC <- predict(preProc, predVar)
 Fit model over the tuning parameters.
 
 ```{r}
-method <- "ctree"
+method <- "lda"
 M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
 M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
 ```

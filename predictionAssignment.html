@@ -281,7 +281,7 @@ histGroup(DTrainCS, &quot;belt&quot;)</code></pre>
 <pre><code>## Loading required package: doParallel
 ## Loading required package: foreach
 ## Loading required package: iterators</code></pre>
-<pre class="r"><code>cl &lt;- makeCluster(3)
+<pre class="r"><code>cl &lt;- makeCluster(2)
 registerDoParallel(cl)</code></pre>
 <p>Set the control parameters.</p>
 <pre class="r"><code>ctrl &lt;- trainControl(classProbs=TRUE,
@@ -295,28 +295,15 @@ trainPC &lt;- predict(preProc, predVar)
 # hat1 &lt;- predict(M1, testPC)
 # confusionMatrix(testing$diagnosis, hat1)</code></pre>
 <p>Fit model over the tuning parameters.</p>
-<pre class="r"><code>method &lt;- &quot;ctree&quot;
+<pre class="r"><code>method &lt;- &quot;lda&quot;
 M0 &lt;- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)</code></pre>
-<pre><code>## Loading required package: party
-## Loading required package: grid
-## Loading required package: zoo
-## 
-## Attaching package: 'zoo'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     as.Date, as.Date.numeric
-## 
-## Loading required package: sandwich
-## Loading required package: strucchange
-## Loading required package: modeltools
-## Loading required package: stats4</code></pre>
+<pre><code>## Loading required package: MASS</code></pre>
 <pre class="r"><code>M1 &lt;- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)</code></pre>
 <p>Stop the clusters.</p>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 <p>Evaluate the model.</p>
 <pre class="r"><code>M0</code></pre>
-<pre><code>## Conditional Inference Tree 
+<pre><code>## Linear Discriminant Analysis 
 ## 
 ## 19622 samples
 ##    52 predictor
@@ -327,49 +314,46 @@ M0 &lt;- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)</code><
 ## 
 ## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
 ## 
-## Resampling results across tuning parameters:
+## Resampling results
 ## 
-##   mincriterion  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.01          0.9       0.9    0.008        0.01    
-##   0.50          0.9       0.9    0.009        0.01    
-##   0.99          0.9       0.9    0.009        0.01    
+##   Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.7       0.6    0.006        0.007   
 ## 
-## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mincriterion = 0.01.</code></pre>
+## </code></pre>
 <pre class="r"><code>confusionMatrix(predict(M0), classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5435  113   26   48   15
-##          B   78 3504  100   62   64
-##          C   18   87 3225   97   40
-##          D   39   53   48 2980   40
-##          E   10   40   23   29 3448
+##          A 4568  586  341  191  133
+##          B  121 2429  333  130  611
+##          C  444  455 2254  379  323
+##          D  429  148  411 2383  344
+##          E   18  179   83  133 2196
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.948         
-##                  95% CI : (0.944, 0.951)
+##                Accuracy : 0.705         
+##                  95% CI : (0.698, 0.711)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc &gt; NIR] : &lt; 2e-16       
+##     P-Value [Acc &gt; NIR] : &lt;2e-16        
 ##                                         
-##                   Kappa : 0.934         
-##  Mcnemar's Test P-Value : 1.8e-05       
+##                   Kappa : 0.626         
+##  Mcnemar's Test P-Value : &lt;2e-16        
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.974    0.923    0.942    0.927    0.956
-## Specificity             0.986    0.981    0.985    0.989    0.994
-## Pos Pred Value          0.964    0.920    0.930    0.943    0.971
-## Neg Pred Value          0.990    0.981    0.988    0.986    0.990
+## Sensitivity             0.819    0.640    0.659    0.741    0.609
+## Specificity             0.911    0.924    0.901    0.919    0.974
+## Pos Pred Value          0.785    0.670    0.585    0.641    0.842
+## Neg Pred Value          0.927    0.914    0.926    0.948    0.917
 ## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.277    0.179    0.164    0.152    0.176
-## Detection Prevalence    0.287    0.194    0.177    0.161    0.181
-## Balanced Accuracy       0.980    0.952    0.964    0.958    0.975</code></pre>
+## Detection Rate          0.233    0.124    0.115    0.121    0.112
+## Detection Prevalence    0.297    0.185    0.196    0.189    0.133
+## Balanced Accuracy       0.865    0.782    0.780    0.830    0.792</code></pre>
 <pre class="r"><code>M1</code></pre>
-<pre><code>## Conditional Inference Tree 
+<pre><code>## Linear Discriminant Analysis 
 ## 
 ## 19622 samples
 ##    24 predictor
@@ -380,47 +364,44 @@ M0 &lt;- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)</code><
 ## 
 ## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
 ## 
-## Resampling results across tuning parameters:
+## Resampling results
 ## 
-##   mincriterion  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.01          0.8       0.7    0.008        0.01    
-##   0.50          0.8       0.7    0.008        0.01    
-##   0.99          0.8       0.7    0.008        0.01    
+##   Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.5       0.4    0.004        0.005   
 ## 
-## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mincriterion = 0.01.</code></pre>
+## </code></pre>
 <pre class="r"><code>confusionMatrix(predict(M1), classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5207  189  115   94   80
-##          B  133 3283  169   80  130
-##          C   76  132 2902  126   88
-##          D   89   78  140 2809   88
-##          E   75  115   96  107 3221
+##          A 3646  860  901  235  312
+##          B  485 1644  363  542  715
+##          C  590  684 1771  491  455
+##          D  819  397  317 1676  484
+##          E   40  212   70  272 1641
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.888         
-##                  95% CI : (0.883, 0.892)
+##                Accuracy : 0.529         
+##                  95% CI : (0.522, 0.536)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc &gt; NIR] : &lt; 2e-16       
+##     P-Value [Acc &gt; NIR] : &lt;2e-16        
 ##                                         
-##                   Kappa : 0.858         
-##  Mcnemar's Test P-Value : 0.00321       
+##                   Kappa : 0.403         
+##  Mcnemar's Test P-Value : &lt;2e-16        
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.933    0.865    0.848    0.873    0.893
-## Specificity             0.966    0.968    0.974    0.976    0.975
-## Pos Pred Value          0.916    0.865    0.873    0.877    0.891
-## Neg Pred Value          0.973    0.968    0.968    0.975    0.976
-## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.265    0.167    0.148    0.143    0.164
-## Detection Prevalence    0.290    0.193    0.169    0.163    0.184
-## Balanced Accuracy       0.950    0.916    0.911    0.925    0.934</code></pre>
+## Sensitivity             0.653   0.4330   0.5175   0.5211   0.4549
+## Specificity             0.836   0.8670   0.8630   0.8771   0.9629
+## Pos Pred Value          0.612   0.4385   0.4437   0.4538   0.7342
+## Neg Pred Value          0.859   0.8644   0.8944   0.9033   0.8869
+## Prevalence              0.284   0.1935   0.1744   0.1639   0.1838
+## Detection Rate          0.186   0.0838   0.0903   0.0854   0.0836
+## Detection Prevalence    0.303   0.1911   0.2034   0.1882   0.1139
+## Balanced Accuracy       0.745   0.6500   0.6902   0.6991   0.7089</code></pre>
 </div>
 
 
