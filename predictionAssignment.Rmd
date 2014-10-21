@@ -79,18 +79,30 @@ preProc
 DTrainCS <- data.table(classe, predict(preProc, predVar))
 ```
 
+Check for near zero variance.
+
+```{r}
+nearZeroVar(DTrainCS, saveMetrics=TRUE)
+```
+
 Examine groups of prediction variables.
 
 ```{r}
 histGroup <- function (data, regex) {
   col <- grep(regex, names(data))
+  col <- c(col, which(names(data) == "classe"))
   require(reshape2)
   n <- nrow(data)
-  DMelted <- melt(data[, col, with=FALSE][, rownum := seq(1, n)], id.vars="rownum")
+  DMelted <- melt(data[, col, with=FALSE][, rownum := seq(1, n)], id.vars=c("rownum", "classe"))
   require(ggplot2)
-  ggplot(DMelted, aes(x=value)) +
-    geom_histogram() +
-    facet_wrap(~ variable, scale="free_x")
+  ggplot(DMelted, aes(x=classe, y=value)) +
+    geom_violin(aes(color=classe, fill=classe), alpha=1/2) +
+#     geom_smooth(aes(group=1), method="glm") +
+    facet_wrap(~ variable, scale="free_y") +
+    scale_color_brewer(palette="Spectral") +
+    scale_fill_brewer(palette="Spectral") +
+    labs(x="", y="") +
+    theme(legend.position="none")
 }
 histGroup(DTrainCS, "belt")
 histGroup(DTrainCS, "[^(fore)]arm")
@@ -103,7 +115,7 @@ histGroup(DTrainCS, "forearm")
 
 Set up the parallel clusters.
 
-```{r}
+```{r, eval=FALSE}
 require(parallel)
 require(doParallel)
 cl <- makeCluster(2)
@@ -112,7 +124,7 @@ registerDoParallel(cl)
 
 Set the control parameters.
 
-```{r}
+```{r, eval=FALSE}
 ctrl <- trainControl(classProbs=TRUE,
                      savePredictions=TRUE,
                      allowParallel=TRUE)
@@ -120,7 +132,7 @@ ctrl <- trainControl(classProbs=TRUE,
 
 Preprocess with PCA.
 
-```{r}
+```{r, eval=FALSE}
 preProc <- preProcess(predVar, method="pca")
 trainPC <- predict(preProc, predVar)
 # M1 <- train(classe ~ ., data=trainPC, method="glm")
@@ -131,7 +143,7 @@ trainPC <- predict(preProc, predVar)
 
 Fit model over the tuning parameters.
 
-```{r}
+```{r, eval=FALSE}
 method <- "C5.0"
 M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
 M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
@@ -139,13 +151,13 @@ M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
 
 Stop the clusters.
 
-```{r}
+```{r, eval=FALSE}
 stopCluster(cl)
 ```
 
 Evaluate the model.
 
-```{r}
+```{r, eval=FALSE}
 M0
 confusionMatrix(predict(M0), classe)
 M1
