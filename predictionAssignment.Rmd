@@ -38,7 +38,7 @@ output:
 > Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis. 
 
 
-# Get the training data
+# Get the datasets
 
 Read the training data into a data table.
 
@@ -46,15 +46,30 @@ Read the training data into a data table.
 require(data.table)
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-D <- fread(url)
+DTrain <- fread(url)
 ```
 
 Make `classe` into a factor.
 
 ```{r}
-classe <- factor(D[, classe])
+classe <- factor(DTrain[, classe])
 is.factor(classe)
 table(classe)
+```
+
+Read the testing data into a data table.
+
+```{r}
+require(data.table)
+setInternet2(TRUE)
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+DTest <- fread(url)
+```
+
+Which variables are in both datasets?
+
+```{r}
+intersect(names(DTrain), names(DTest))
 ```
 
 Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
