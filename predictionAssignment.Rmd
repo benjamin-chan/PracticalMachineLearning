@@ -57,11 +57,60 @@ is.factor(classe)
 table(classe)
 ```
 
+From [Velloso 2013, et al.](http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf):
+
+> For feature extraction we used a sliding window approach
+> with different lengths from 0.5 second to 2.5 seconds, with
+> 0.5 second overlap. In each step of the sliding window approach
+> we calculated features on the Euler angles (roll, pitch
+> and yaw), as well as the raw accelerometer, gyroscope and
+> magnetometer readings. For the Euler angles of each of the
+> four sensors we calculated eight features: mean, variance,
+> standard deviation, max, min, amplitude, kurtosis and skewness,
+> generating in total 96 derived feature sets.
+
+> In order to identify the most relevant features we used the
+> feature selection algorithm based on correlation proposed by
+> Hall [14]. The algorithm was configured to use a "Best First"
+> strategy based on backtracking. 17 features were selected:
+> in the belt, were selected the mean and variance of the roll,
+> maximum, range and variance of the accelerometer vector,
+> variance of the gyro and variance of the magnetometer. In
+> the arm, the variance of the accelerometer vector and the
+> maximum and minimum of the magnetometer were selected.
+> In the dumbbell, the selected features were the maximum of
+> the acceleration, variance of the gyro and maximum and
+> minimum of the magnetometer, while in the glove, the sum
+> of the pitch and the maximum and minimum of the gyro
+> were selected.
+
+```{r}
+regexOther <- "classe|num_window|new_window|user_name"
+regexBelt <- "^roll_belt$|^avg_roll_belt$|^var_roll_belt$|^accel_belt|^gyro_belt|^magnet_belt"
+regexArm <- "^accel_arm|^magnet_arm"
+regexDumbbell <- "^accel_dumbbell|^gyro_dumbbell|^magnet_dumbbell"
+regexForearm <- "^pitch_forearm$|^gyro_forearm"
+regex <- paste(regexOther, regexBelt, regexArm, regexDumbbell, regexForearm, sep="|")
+varCol <- grep(regex, names(D))
+DTrain <- D[, varCol, with=FALSE]
+str(DTrain)
+```
+
+```{r}
+DTrainAgg <- DTrain[,
+                    list(roll_beltAvg = mean(roll_belt, na.rm=TRUE),
+                         roll_beltVar = var(roll_belt, na.rm=TRUE)),
+                    list(user_name, num_window, classe)]
+DTrainAgg <- merge(DTrainAgg,
+                   DTrain[new_window == "yes", list(user_name, num_window, classe, avg_roll_belt, var_roll_belt)],
+                   by=c("user_name", "num_window", "classe"))
+```
+
 Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
 These will be the predictor variables.
 There are a lot of missing values in the other variables.
 
-```{r}
+```{r, eval=FALSE}
 regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
 predVarCol <- grep(regex, names(D))
 predVar <- D[, predVarCol, with=FALSE]
