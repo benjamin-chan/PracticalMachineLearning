@@ -1,13 +1,15 @@
 ---
 title: 'Coursera: Practical Machine Learning Prediction Assignment'
 author: "Benjamin Chan"
-date: "Tuesday, October 07, 2014"
 output:
   html_document:
     keep_md: yes
     toc: yes
 ---
 
+```{r, echo=FALSE}
+message(sprintf("Run time: %s\nR version: %s", Sys.time(), R.Version()$version.string))
+```
 
 > **Background**
 
@@ -66,21 +68,22 @@ url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 DTest <- fread(url)
 ```
 
-Which variables are in both datasets?
+Which variables in the test dataset have zero `NA`s?
+Use this tip: [finding columns with all missing values in r](http://stackoverflow.com/a/11330265).
+Use these variables as the **predictor candidates**.
 
 ```{r}
-intersect(names(DTrain), names(DTest))
+isAnyMissing <- sapply(DTest, function (x) any(is.na(x) | x == ""))
+table(isAnyMissing)
+predCandidates <- names(isAnyMissing)[!isAnyMissing & grepl("belt|arm|dumbbell|forearm", names(isAnyMissing))]
+predCandidates
 ```
 
-Subset columns with names beginning with *roll*, *pitch*, *yaw*, *total_accel*, *gyros*, *accel*, *magnet*
-These will be the predictor variables.
-There are a lot of missing values in the other variables.
+Subset the training dataset to include only the **predictor candidates**.
 
 ```{r}
-regex <- "^roll|^pitch|^yaw|^total_accel|^gyros|^accel|^magnet"
-predVarCol <- grep(regex, names(D))
-predVar <- D[, predVarCol, with=FALSE]
-DTrain <- data.table(classe, predVar)
+varToInclude <- c("classe", predCandidates)
+DTrain <- DTrain[, varToInclude, with=FALSE]
 str(DTrain)
 sum(is.na(DTrain))
 ```
@@ -89,9 +92,10 @@ Preprocess the prediction variables by centering and scaling.
 
 ```{r}
 require(caret)
-preProc <- preProcess(predVar)
+preProc <- preProcess(DTrain[, predCandidates, with=FALSE])
 preProc
-DTrainCS <- data.table(classe, predict(preProc, predVar))
+DTrainCS <- data.table(predict(preProc, DTrain[, predCandidates, with=FALSE]))
+DTrainCS <- DTrainCS[, classe := classe]
 ```
 
 Check for near zero variance.
@@ -126,11 +130,11 @@ histGroup(DTrainCS, "forearm")
 ```
 
 
-# Build a prediction model
+# Train a prediction model
 
 Set up the parallel clusters.
 
-```{r, eval=FALSE}
+```{r}
 require(parallel)
 require(doParallel)
 cl <- makeCluster(2)
@@ -139,7 +143,7 @@ registerDoParallel(cl)
 
 Set the control parameters.
 
-```{r, eval=FALSE}
+```{r}
 ctrl <- trainControl(classProbs=TRUE,
                      savePredictions=TRUE,
                      allowParallel=TRUE)
@@ -147,9 +151,9 @@ ctrl <- trainControl(classProbs=TRUE,
 
 Preprocess with PCA.
 
-```{r, eval=FALSE}
-preProc <- preProcess(predVar, method="pca")
-trainPC <- predict(preProc, predVar)
+```{r}
+preProc <- preProcess(DTrain[, predCandidates, with=FALSE], method="pca")
+trainPC <- predict(preProc, DTrain[, predCandidates, with=FALSE])
 # M1 <- train(classe ~ ., data=trainPC, method="glm")
 # testPC <- predict(preProc, testing[predVar])
 # hat1 <- predict(M1, testPC)
@@ -158,23 +162,32 @@ trainPC <- predict(preProc, predVar)
 
 Fit model over the tuning parameters.
 
-```{r, eval=FALSE}
-method <- "C5.0"
-M0 <- train(classe ~ ., data=DTrainCS, method=method, trControl=ctrl)
-M1 <- train(classe ~ ., data=trainPC, method=method, trControl=ctrl)
+```{r}
+method <- "ctree"
+M0 <- train(classe ~ ., data=DTrainCS, method=method)
+# M1 <- train(classe ~ ., data=trainPC, method=method)
 ```
 
 Stop the clusters.
 
-```{r, eval=FALSE}
+```{r}
 stopCluster(cl)
 ```
 
 Evaluate the model.
 
-```{r, eval=FALSE}
+```{r}
 M0
 confusionMatrix(predict(M0), classe)
-M1
-confusionMatrix(predict(M1), classe)
+varImp(M0)
+plot(varImp(M0))
+# M1
+# confusionMatrix(predict(M1), classe)
+# varImp(M1)
+```
+
+Save training mode object for later.
+
+```{r}
+save(M0, file="trainingModel.RData")
 ```
