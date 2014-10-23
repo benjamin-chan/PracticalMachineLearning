@@ -1,9 +1,9 @@
 # Coursera: Practical Machine Learning Prediction Assignment
-Benjamin Chan  
+Benjamin Chan [GitHub](https://github.com/benjamin-chan)  
 
 
 ```
-## Run time: 2014-10-22 06:01:52
+## Run time: 2014-10-23 06:02:25
 ## R version: R version 3.1.1 (2014-07-10)
 ```
 
@@ -36,7 +36,7 @@ Benjamin Chan
 > Due to security concerns with the exchange of R code, your code will not be run during the evaluation by your classmates. Please be sure that if they download the repo, they will be able to view the compiled HTML version of your analysis. 
 
 
-# Get the datasets
+# Prepare the datasets
 
 Read the training data into a data table.
 
@@ -52,59 +52,27 @@ require(data.table)
 ```r
 setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-DTrain <- fread(url)
-```
-
-Make `classe` into a factor.
-
-
-```r
-classe <- factor(DTrain[, classe])
-is.factor(classe)
-```
-
-```
-## [1] TRUE
-```
-
-```r
-table(classe)
-```
-
-```
-## classe
-##    A    B    C    D    E 
-## 5580 3797 3422 3216 3607
+D <- fread(url)
 ```
 
 Read the testing data into a data table.
 
 
 ```r
-require(data.table)
-setInternet2(TRUE)
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 DTest <- fread(url)
 ```
 
 Which variables in the test dataset have zero `NA`s?
 Use this tip: [finding columns with all missing values in r](http://stackoverflow.com/a/11330265).
-Use these variables as the **predictor candidates**.
+
+Belt, arm, dumbbell, and forearm variables that do not have any missing values in the test dataset will be **predictor candidates**.
 
 
 ```r
 isAnyMissing <- sapply(DTest, function (x) any(is.na(x) | x == ""))
-table(isAnyMissing)
-```
-
-```
-## isAnyMissing
-## FALSE  TRUE 
-##    60   100
-```
-
-```r
-predCandidates <- names(isAnyMissing)[!isAnyMissing & grepl("belt|arm|dumbbell|forearm", names(isAnyMissing))]
+isPredictor <- !isAnyMissing & grepl("belt|[^(fore)]arm|dumbbell|forearm", names(isAnyMissing))
+predCandidates <- names(isAnyMissing)[isPredictor]
 predCandidates
 ```
 
@@ -129,82 +97,62 @@ predCandidates
 ## [52] "magnet_forearm_z"
 ```
 
-Subset the training dataset to include only the **predictor candidates**.
+Subset the primary dataset to include only the **predictor candidates** and the outcome variable, `classe`.
 
 
 ```r
 varToInclude <- c("classe", predCandidates)
-DTrain <- DTrain[, varToInclude, with=FALSE]
-str(DTrain)
+D <- D[, varToInclude, with=FALSE]
+dim(D)
 ```
 
 ```
-## Classes 'data.table' and 'data.frame':	19622 obs. of  53 variables:
-##  $ classe              : chr  "A" "A" "A" "A" ...
-##  $ roll_belt           : num  1.41 1.41 1.42 1.48 1.48 1.45 1.42 1.42 1.43 1.45 ...
-##  $ pitch_belt          : num  8.07 8.07 8.07 8.05 8.07 8.06 8.09 8.13 8.16 8.17 ...
-##  $ yaw_belt            : num  -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 ...
-##  $ total_accel_belt    : int  3 3 3 3 3 3 3 3 3 3 ...
-##  $ gyros_belt_x        : num  0 0.02 0 0.02 0.02 0.02 0.02 0.02 0.02 0.03 ...
-##  $ gyros_belt_y        : num  0 0 0 0 0.02 0 0 0 0 0 ...
-##  $ gyros_belt_z        : num  -0.02 -0.02 -0.02 -0.03 -0.02 -0.02 -0.02 -0.02 -0.02 0 ...
-##  $ accel_belt_x        : int  -21 -22 -20 -22 -21 -21 -22 -22 -20 -21 ...
-##  $ accel_belt_y        : int  4 4 5 3 2 4 3 4 2 4 ...
-##  $ accel_belt_z        : int  22 22 23 21 24 21 21 21 24 22 ...
-##  $ magnet_belt_x       : int  -3 -7 -2 -6 -6 0 -4 -2 1 -3 ...
-##  $ magnet_belt_y       : int  599 608 600 604 600 603 599 603 602 609 ...
-##  $ magnet_belt_z       : int  -313 -311 -305 -310 -302 -312 -311 -313 -312 -308 ...
-##  $ roll_arm            : num  -128 -128 -128 -128 -128 -128 -128 -128 -128 -128 ...
-##  $ pitch_arm           : num  22.5 22.5 22.5 22.1 22.1 22 21.9 21.8 21.7 21.6 ...
-##  $ yaw_arm             : num  -161 -161 -161 -161 -161 -161 -161 -161 -161 -161 ...
-##  $ total_accel_arm     : int  34 34 34 34 34 34 34 34 34 34 ...
-##  $ gyros_arm_x         : num  0 0.02 0.02 0.02 0 0.02 0 0.02 0.02 0.02 ...
-##  $ gyros_arm_y         : num  0 -0.02 -0.02 -0.03 -0.03 -0.03 -0.03 -0.02 -0.03 -0.03 ...
-##  $ gyros_arm_z         : num  -0.02 -0.02 -0.02 0.02 0 0 0 0 -0.02 -0.02 ...
-##  $ accel_arm_x         : int  -288 -290 -289 -289 -289 -289 -289 -289 -288 -288 ...
-##  $ accel_arm_y         : int  109 110 110 111 111 111 111 111 109 110 ...
-##  $ accel_arm_z         : int  -123 -125 -126 -123 -123 -122 -125 -124 -122 -124 ...
-##  $ magnet_arm_x        : int  -368 -369 -368 -372 -374 -369 -373 -372 -369 -376 ...
-##  $ magnet_arm_y        : int  337 337 344 344 337 342 336 338 341 334 ...
-##  $ magnet_arm_z        : int  516 513 513 512 506 513 509 510 518 516 ...
-##  $ roll_dumbbell       : num  13.1 13.1 12.9 13.4 13.4 ...
-##  $ pitch_dumbbell      : num  -70.5 -70.6 -70.3 -70.4 -70.4 ...
-##  $ yaw_dumbbell        : num  -84.9 -84.7 -85.1 -84.9 -84.9 ...
-##  $ total_accel_dumbbell: int  37 37 37 37 37 37 37 37 37 37 ...
-##  $ gyros_dumbbell_x    : num  0 0 0 0 0 0 0 0 0 0 ...
-##  $ gyros_dumbbell_y    : num  -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 ...
-##  $ gyros_dumbbell_z    : num  0 0 0 -0.02 0 0 0 0 0 0 ...
-##  $ accel_dumbbell_x    : int  -234 -233 -232 -232 -233 -234 -232 -234 -232 -235 ...
-##  $ accel_dumbbell_y    : int  47 47 46 48 48 48 47 46 47 48 ...
-##  $ accel_dumbbell_z    : int  -271 -269 -270 -269 -270 -269 -270 -272 -269 -270 ...
-##  $ magnet_dumbbell_x   : int  -559 -555 -561 -552 -554 -558 -551 -555 -549 -558 ...
-##  $ magnet_dumbbell_y   : int  293 296 298 303 292 294 295 300 292 291 ...
-##  $ magnet_dumbbell_z   : num  -65 -64 -63 -60 -68 -66 -70 -74 -65 -69 ...
-##  $ roll_forearm        : num  28.4 28.3 28.3 28.1 28 27.9 27.9 27.8 27.7 27.7 ...
-##  $ pitch_forearm       : num  -63.9 -63.9 -63.9 -63.9 -63.9 -63.9 -63.9 -63.8 -63.8 -63.8 ...
-##  $ yaw_forearm         : num  -153 -153 -152 -152 -152 -152 -152 -152 -152 -152 ...
-##  $ total_accel_forearm : int  36 36 36 36 36 36 36 36 36 36 ...
-##  $ gyros_forearm_x     : num  0.03 0.02 0.03 0.02 0.02 0.02 0.02 0.02 0.03 0.02 ...
-##  $ gyros_forearm_y     : num  0 0 -0.02 -0.02 0 -0.02 0 -0.02 0 0 ...
-##  $ gyros_forearm_z     : num  -0.02 -0.02 0 0 -0.02 -0.03 -0.02 0 -0.02 -0.02 ...
-##  $ accel_forearm_x     : int  192 192 196 189 189 193 195 193 193 190 ...
-##  $ accel_forearm_y     : int  203 203 204 206 206 203 205 205 204 205 ...
-##  $ accel_forearm_z     : int  -215 -216 -213 -214 -214 -215 -215 -213 -214 -215 ...
-##  $ magnet_forearm_x    : int  -17 -18 -18 -16 -17 -9 -18 -9 -16 -22 ...
-##  $ magnet_forearm_y    : num  654 661 658 658 655 660 659 660 653 656 ...
-##  $ magnet_forearm_z    : num  476 473 469 469 473 478 470 474 476 473 ...
-##  - attr(*, ".internal.selfref")=<externalptr>
+## [1] 19622    53
 ```
 
 ```r
-sum(is.na(DTrain))
+names(D)
 ```
 
 ```
-## [1] 0
+##  [1] "classe"               "roll_belt"            "pitch_belt"          
+##  [4] "yaw_belt"             "total_accel_belt"     "gyros_belt_x"        
+##  [7] "gyros_belt_y"         "gyros_belt_z"         "accel_belt_x"        
+## [10] "accel_belt_y"         "accel_belt_z"         "magnet_belt_x"       
+## [13] "magnet_belt_y"        "magnet_belt_z"        "roll_arm"            
+## [16] "pitch_arm"            "yaw_arm"              "total_accel_arm"     
+## [19] "gyros_arm_x"          "gyros_arm_y"          "gyros_arm_z"         
+## [22] "accel_arm_x"          "accel_arm_y"          "accel_arm_z"         
+## [25] "magnet_arm_x"         "magnet_arm_y"         "magnet_arm_z"        
+## [28] "roll_dumbbell"        "pitch_dumbbell"       "yaw_dumbbell"        
+## [31] "total_accel_dumbbell" "gyros_dumbbell_x"     "gyros_dumbbell_y"    
+## [34] "gyros_dumbbell_z"     "accel_dumbbell_x"     "accel_dumbbell_y"    
+## [37] "accel_dumbbell_z"     "magnet_dumbbell_x"    "magnet_dumbbell_y"   
+## [40] "magnet_dumbbell_z"    "roll_forearm"         "pitch_forearm"       
+## [43] "yaw_forearm"          "total_accel_forearm"  "gyros_forearm_x"     
+## [46] "gyros_forearm_y"      "gyros_forearm_z"      "accel_forearm_x"     
+## [49] "accel_forearm_y"      "accel_forearm_z"      "magnet_forearm_x"    
+## [52] "magnet_forearm_y"     "magnet_forearm_z"
 ```
 
-Preprocess the prediction variables by centering and scaling.
+Make `classe` into a factor.
+
+
+```r
+D <- D[, classe := factor(D[, classe])]
+D[, .N, classe]
+```
+
+```
+##    classe    N
+## 1:      A 5580
+## 2:      B 3797
+## 3:      C 3422
+## 4:      D 3216
+## 5:      E 3607
+```
+
+Split the dataset into training and probing datasets.
 
 
 ```r
@@ -218,86 +166,55 @@ require(caret)
 ```
 
 ```r
-preProc <- preProcess(DTrain[, predCandidates, with=FALSE])
+seed <- as.numeric(as.Date("2014-10-26"))
+set.seed(seed)
+inTrain <- createDataPartition(D$classe, p=0.6)
+DTrain <- D[inTrain[[1]]]
+DProbe <- D[-inTrain[[1]]]
+```
+
+Preprocess the prediction variables by centering and scaling.
+
+
+```r
+X <- DTrain[, predCandidates, with=FALSE]
+preProc <- preProcess(X)
 preProc
 ```
 
 ```
 ## 
 ## Call:
-## preProcess.default(x = DTrain[, predCandidates, with = FALSE])
+## preProcess.default(x = X)
 ## 
-## Created from 19622 samples and 52 variables
+## Created from 11776 samples and 52 variables
 ## Pre-processing: centered, scaled
 ```
 
 ```r
-DTrainCS <- data.table(predict(preProc, DTrain[, predCandidates, with=FALSE]))
-DTrainCS <- DTrainCS[, classe := classe]
+XCS <- predict(preProc, X)
+DTrainCS <- data.table(data.frame(classe = DTrain[, classe], XCS))
+```
+
+Apply the centering and scaling to the probing dataset.
+
+
+```r
+X <- DProbe[, predCandidates, with=FALSE]
+XCS <- predict(preProc, X)
+DProbeCS <- data.table(data.frame(classe = DProbe[, classe], XCS))
 ```
 
 Check for near zero variance.
 
 
 ```r
-nearZeroVar(DTrainCS, saveMetrics=TRUE)
+nzv <- nearZeroVar(DTrainCS, saveMetrics=TRUE)
+if (any(nzv$nzv)) nzv else message("No variables with near zero variance")
 ```
 
 ```
-##                      freqRatio percentUnique zeroVar   nzv
-## roll_belt                1.102       6.77811   FALSE FALSE
-## pitch_belt               1.036       9.37723   FALSE FALSE
-## yaw_belt                 1.058       9.97350   FALSE FALSE
-## total_accel_belt         1.063       0.14779   FALSE FALSE
-## gyros_belt_x             1.059       0.71348   FALSE FALSE
-## gyros_belt_y             1.144       0.35165   FALSE FALSE
-## gyros_belt_z             1.066       0.86128   FALSE FALSE
-## accel_belt_x             1.055       0.83580   FALSE FALSE
-## accel_belt_y             1.114       0.72877   FALSE FALSE
-## accel_belt_z             1.079       1.52380   FALSE FALSE
-## magnet_belt_x            1.090       1.66650   FALSE FALSE
-## magnet_belt_y            1.100       1.51870   FALSE FALSE
-## magnet_belt_z            1.006       2.32902   FALSE FALSE
-## roll_arm                52.338      13.52563   FALSE FALSE
-## pitch_arm               87.256      15.73234   FALSE FALSE
-## yaw_arm                 33.029      14.65702   FALSE FALSE
-## total_accel_arm          1.025       0.33636   FALSE FALSE
-## gyros_arm_x              1.016       3.27693   FALSE FALSE
-## gyros_arm_y              1.454       1.91622   FALSE FALSE
-## gyros_arm_z              1.111       1.26389   FALSE FALSE
-## accel_arm_x              1.017       3.95984   FALSE FALSE
-## accel_arm_y              1.140       2.73672   FALSE FALSE
-## accel_arm_z              1.128       4.03629   FALSE FALSE
-## magnet_arm_x             1.000       6.82397   FALSE FALSE
-## magnet_arm_y             1.057       4.44399   FALSE FALSE
-## magnet_arm_z             1.036       6.44685   FALSE FALSE
-## roll_dumbbell            1.022      84.19121   FALSE FALSE
-## pitch_dumbbell           2.245      49.37825   FALSE FALSE
-## yaw_dumbbell             1.132      83.47263   FALSE FALSE
-## total_accel_dumbbell     1.073       0.21914   FALSE FALSE
-## gyros_dumbbell_x         1.003       1.22821   FALSE FALSE
-## gyros_dumbbell_y         1.265       1.41678   FALSE FALSE
-## gyros_dumbbell_z         1.060       1.04984   FALSE FALSE
-## accel_dumbbell_x         1.018       2.16594   FALSE FALSE
-## accel_dumbbell_y         1.053       2.37489   FALSE FALSE
-## accel_dumbbell_z         1.133       2.08949   FALSE FALSE
-## magnet_dumbbell_x        1.098       5.74865   FALSE FALSE
-## magnet_dumbbell_y        1.198       4.30129   FALSE FALSE
-## magnet_dumbbell_z        1.021       3.44511   FALSE FALSE
-## roll_forearm            11.589      11.08959   FALSE FALSE
-## pitch_forearm           65.983      14.85577   FALSE FALSE
-## yaw_forearm             15.323      10.14677   FALSE FALSE
-## total_accel_forearm      1.129       0.35674   FALSE FALSE
-## gyros_forearm_x          1.059       1.51870   FALSE FALSE
-## gyros_forearm_y          1.037       3.77637   FALSE FALSE
-## gyros_forearm_z          1.123       1.56457   FALSE FALSE
-## accel_forearm_x          1.126       4.04648   FALSE FALSE
-## accel_forearm_y          1.059       5.11161   FALSE FALSE
-## accel_forearm_z          1.006       2.95587   FALSE FALSE
-## magnet_forearm_x         1.012       7.76679   FALSE FALSE
-## magnet_forearm_y         1.247       9.54031   FALSE FALSE
-## magnet_forearm_z         1.000       8.57711   FALSE FALSE
-## classe                   1.470       0.02548   FALSE FALSE
+## No variables with near zero variance
 ```
 
 Examine groups of prediction variables.
@@ -313,7 +230,8 @@ histGroup <- function (data, regex) {
   require(ggplot2)
   ggplot(DMelted, aes(x=classe, y=value)) +
     geom_violin(aes(color=classe, fill=classe), alpha=1/2) +
-#     geom_smooth(aes(group=1), method="glm") +
+#     geom_jitter(aes(color=classe, fill=classe), alpha=1/10) +
+#     geom_smooth(aes(group=1), method="gam", color="black", alpha=1/2, size=2) +
     facet_wrap(~ variable, scale="free_y") +
     scale_color_brewer(palette="Spectral") +
     scale_fill_brewer(palette="Spectral") +
@@ -327,25 +245,25 @@ histGroup(DTrainCS, "belt")
 ## Loading required package: reshape2
 ```
 
-![plot of chunk unnamed-chunk-9](./predictionAssignment_files/figure-html/unnamed-chunk-91.png) 
+![plot of chunk histGroup](./predictionAssignment_files/figure-html/histGroup1.png) 
 
 ```r
 histGroup(DTrainCS, "[^(fore)]arm")
 ```
 
-![plot of chunk unnamed-chunk-9](./predictionAssignment_files/figure-html/unnamed-chunk-92.png) 
+![plot of chunk histGroup](./predictionAssignment_files/figure-html/histGroup2.png) 
 
 ```r
 histGroup(DTrainCS, "dumbbell")
 ```
 
-![plot of chunk unnamed-chunk-9](./predictionAssignment_files/figure-html/unnamed-chunk-93.png) 
+![plot of chunk histGroup](./predictionAssignment_files/figure-html/histGroup3.png) 
 
 ```r
 histGroup(DTrainCS, "forearm")
 ```
 
-![plot of chunk unnamed-chunk-9](./predictionAssignment_files/figure-html/unnamed-chunk-94.png) 
+![plot of chunk histGroup](./predictionAssignment_files/figure-html/histGroup4.png) 
 
 
 # Train a prediction model
@@ -385,45 +303,16 @@ ctrl <- trainControl(classProbs=TRUE,
                      allowParallel=TRUE)
 ```
 
-Preprocess with PCA.
-
-
-```r
-preProc <- preProcess(DTrain[, predCandidates, with=FALSE], method="pca")
-trainPC <- predict(preProc, DTrain[, predCandidates, with=FALSE])
-# M1 <- train(classe ~ ., data=trainPC, method="glm")
-# testPC <- predict(preProc, testing[predVar])
-# hat1 <- predict(M1, testPC)
-# confusionMatrix(testing$diagnosis, hat1)
-```
-
 Fit model over the tuning parameters.
 
 
 ```r
-method <- "ctree"
-M0 <- train(classe ~ ., data=DTrainCS, method=method)
+method <- "rpart"
+trainingModel <- train(classe ~ ., data=DTrainCS, method=method)
 ```
 
 ```
-## Loading required package: party
-## Loading required package: grid
-## Loading required package: zoo
-## 
-## Attaching package: 'zoo'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     as.Date, as.Date.numeric
-## 
-## Loading required package: sandwich
-## Loading required package: strucchange
-## Loading required package: modeltools
-## Loading required package: stats4
-```
-
-```r
-# M1 <- train(classe ~ ., data=trainPC, method=method)
+## Loading required package: rpart
 ```
 
 Stop the clusters.
@@ -437,34 +326,35 @@ Evaluate the model.
 
 
 ```r
-M0
+trainingModel
 ```
 
 ```
-## Conditional Inference Tree 
+## CART 
 ## 
-## 19622 samples
+## 11776 samples
 ##    52 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
 ## Resampling: Bootstrapped (25 reps) 
 ## 
-## Summary of sample sizes: 19622, 19622, 19622, 19622, 19622, 19622, ... 
+## Summary of sample sizes: 11776, 11776, 11776, 11776, 11776, 11776, ... 
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   mincriterion  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.01          0.9       0.9    0.007        0.009   
-##   0.50          0.9       0.9    0.007        0.009   
-##   0.99          0.9       0.9    0.007        0.009   
+##   cp    Accuracy  Kappa  Accuracy SD  Kappa SD
+##   0.04  0.5       0.36   0.02         0.03    
+##   0.06  0.4       0.18   0.06         0.10    
+##   0.11  0.3       0.08   0.04         0.06    
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mincriterion = 0.01.
+## The final value used for the model was cp = 0.0356.
 ```
 
 ```r
-confusionMatrix(predict(M0), classe)
+hat <- predict(trainingModel, DTrainCS)
+confusionMatrix(hat, DTrain[, classe])
 ```
 
 ```
@@ -472,94 +362,227 @@ confusionMatrix(predict(M0), classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 5435  113   26   48   15
-##          B   78 3504  100   62   64
-##          C   18   87 3225   97   40
-##          D   39   53   48 2980   40
-##          E   10   40   23   29 3448
+##          A 2995  921  945  852  277
+##          B   61  802   72  347  301
+##          C  250  556 1037  731  580
+##          D    0    0    0    0    0
+##          E   42    0    0    0 1007
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.948         
-##                  95% CI : (0.944, 0.951)
+##                Accuracy : 0.496         
+##                  95% CI : (0.487, 0.505)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : < 2e-16       
+##     P-Value [Acc > NIR] : <2e-16        
 ##                                         
-##                   Kappa : 0.934         
-##  Mcnemar's Test P-Value : 1.8e-05       
+##                   Kappa : 0.342         
+##  Mcnemar's Test P-Value : NA            
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.974    0.923    0.942    0.927    0.956
-## Specificity             0.986    0.981    0.985    0.989    0.994
-## Pos Pred Value          0.964    0.920    0.930    0.943    0.971
-## Neg Pred Value          0.990    0.981    0.988    0.986    0.990
-## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.277    0.179    0.164    0.152    0.176
-## Detection Prevalence    0.287    0.194    0.177    0.161    0.181
-## Balanced Accuracy       0.980    0.952    0.964    0.958    0.975
+## Sensitivity             0.895   0.3519   0.5049    0.000   0.4651
+## Specificity             0.645   0.9178   0.7822    1.000   0.9956
+## Pos Pred Value          0.500   0.5066   0.3288      NaN   0.9600
+## Neg Pred Value          0.939   0.8551   0.8820    0.836   0.8920
+## Prevalence              0.284   0.1935   0.1744    0.164   0.1838
+## Detection Rate          0.254   0.0681   0.0881    0.000   0.0855
+## Detection Prevalence    0.509   0.1344   0.2678    0.000   0.0891
+## Balanced Accuracy       0.770   0.6348   0.6436    0.500   0.7304
 ```
 
 ```r
-varImp(M0)
+hat <- predict(trainingModel, DProbeCS)
+confusionMatrix(hat, DProbeCS[, classe])
 ```
 
 ```
-## Loading required package: pROC
-## Type 'citation("pROC")' for a citation.
+## Confusion Matrix and Statistics
 ## 
-## Attaching package: 'pROC'
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2011  643  641  589  212
+##          B   34  501   37  233  173
+##          C  155  374  690  464  365
+##          D    0    0    0    0    0
+##          E   32    0    0    0  692
 ## 
-## The following objects are masked from 'package:stats':
+## Overall Statistics
+##                                         
+##                Accuracy : 0.496         
+##                  95% CI : (0.485, 0.507)
+##     No Information Rate : 0.284         
+##     P-Value [Acc > NIR] : <2e-16        
+##                                         
+##                   Kappa : 0.341         
+##  Mcnemar's Test P-Value : NA            
 ## 
-##     cov, smooth, var
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity             0.901   0.3300   0.5044    0.000   0.4799
+## Specificity             0.629   0.9246   0.7904    1.000   0.9950
+## Pos Pred Value          0.491   0.5123   0.3369      NaN   0.9558
+## Neg Pred Value          0.941   0.8519   0.8831    0.836   0.8947
+## Prevalence              0.284   0.1935   0.1744    0.164   0.1838
+## Detection Rate          0.256   0.0639   0.0879    0.000   0.0882
+## Detection Prevalence    0.522   0.1246   0.2610    0.000   0.0923
+## Balanced Accuracy       0.765   0.6273   0.6474    0.500   0.7374
+```
+
+```r
+varImp(trainingModel)
 ```
 
 ```
-## ROC curve variable importance
+## rpart variable importance
 ## 
-##   variables are sorted by maximum importance across the classes
 ##   only 20 most important variables shown (out of 52)
 ## 
-##                       A    B    C     D    E
-## pitch_forearm     100.0 64.1 71.8 100.0 68.3
-## roll_dumbbell      52.9 63.7 84.4  84.4 58.8
-## accel_forearm_x    81.7 51.2 64.0  81.7 47.5
-## magnet_arm_x       78.8 54.6 56.5  78.8 66.1
-## magnet_arm_y       77.3 40.7 54.9  77.3 68.5
-## accel_arm_x        73.9 52.4 48.9  73.9 62.7
-## pitch_dumbbell     54.3 72.2 72.2  62.5 48.2
-## magnet_forearm_x   72.0 51.4 40.8  72.0 43.9
-## magnet_belt_y      68.4 61.3 62.7  63.2 68.4
-## magnet_dumbbell_y  47.9 66.4 66.4  48.5 53.8
-## magnet_dumbbell_x  66.4 66.4 65.6  52.0 53.2
-## accel_dumbbell_x   58.2 58.6 58.6  49.1 41.4
-## magnet_dumbbell_z  57.7 26.1 57.7  38.7 55.4
-## magnet_arm_z       53.9 53.9 38.7  41.9 50.9
-## magnet_belt_z      52.1 50.9 50.7  52.5 52.5
-## pitch_arm          50.6 29.0 39.1  44.0 50.6
-## roll_belt          46.4 41.6 43.4  49.0 49.0
-## magnet_forearm_y   39.4 26.9 46.8  46.8 37.1
-## accel_dumbbell_z   44.2 44.2 42.1  23.9 31.7
-## yaw_dumbbell       21.7 43.1 43.1  20.6 29.7
+##                   Overall
+## pitch_forearm       100.0
+## roll_belt            91.5
+## roll_forearm         77.1
+## magnet_dumbbell_y    51.8
+## accel_belt_z         44.1
+## magnet_belt_y        41.6
+## yaw_belt             41.0
+## total_accel_belt     36.9
+## magnet_arm_x         27.1
+## accel_arm_x          26.0
+## magnet_dumbbell_z    20.7
+## roll_dumbbell        19.8
+## accel_dumbbell_y     15.8
+## roll_arm             15.3
+## accel_dumbbell_x      0.0
+## gyros_belt_x          0.0
+## gyros_forearm_z       0.0
+## gyros_arm_z           0.0
+## yaw_forearm           0.0
+## gyros_belt_z          0.0
 ```
 
-```r
-plot(varImp(M0))
-```
-
-![plot of chunk unnamed-chunk-15](./predictionAssignment_files/figure-html/unnamed-chunk-15.png) 
-
-```r
-# M1
-# confusionMatrix(predict(M1), classe)
-# varImp(M1)
-```
-
-Save training mode object for later.
+Display the final model.
 
 
 ```r
-save(M0, file="trainingModel.RData")
+trainingModel$finalModel
+```
+
+```
+## n= 11776 
+## 
+## node), split, n, loss, yval, (yprob)
+##       * denotes terminal node
+## 
+##  1) root 11776 8428 A (0.28 0.19 0.17 0.16 0.18)  
+##    2) roll_belt< 1.041 10727 7421 A (0.31 0.21 0.19 0.18 0.11)  
+##      4) pitch_forearm< -1.617 917    5 A (0.99 0.0055 0 0 0) *
+##      5) pitch_forearm>=-1.617 9810 7416 A (0.24 0.23 0.21 0.2 0.12)  
+##       10) magnet_dumbbell_y< 0.6513 8227 5894 A (0.28 0.18 0.24 0.19 0.1)  
+##         20) roll_forearm< 0.8236 5073 2990 A (0.41 0.18 0.19 0.17 0.055) *
+##         21) roll_forearm>=0.8236 3154 2117 C (0.079 0.18 0.33 0.23 0.18) *
+##       11) magnet_dumbbell_y>=0.6513 1583  781 B (0.039 0.51 0.045 0.22 0.19) *
+##    3) roll_belt>=1.041 1049   42 E (0.04 0 0 0 0.96) *
+```
+
+```r
+plot(trainingModel$finalModel)
+text(trainingModel$finalModel)
+```
+
+![plot of chunk finalModel](./predictionAssignment_files/figure-html/finalModel.png) 
+
+Save training model object for later.
+
+
+```r
+save(trainingModel, file="trainingModel.RData")
+```
+
+
+# Predict on the test data
+
+Load the training model.
+
+
+```r
+load(file="trainingModel.RData", verbose=TRUE)
+```
+
+```
+## Loading objects:
+##   trainingModel
+```
+
+Get predictions and evaluate.
+
+
+```r
+DTestCS <- predict(preProc, DTest[, predCandidates, with=FALSE])
+hat <- predict(trainingModel, DTestCS)
+DTest <- cbind(hat , DTest)
+subset(DTest, select=names(DTest)[grep("belt|[^(fore)]arm|dumbbell|forearm", names(DTest), invert=TRUE)])
+```
+
+```
+##     hat V1 user_name raw_timestamp_part_1 raw_timestamp_part_2
+##  1:   C  1     pedro           1323095002               868349
+##  2:   A  2    jeremy           1322673067               778725
+##  3:   C  3    jeremy           1322673075               342967
+##  4:   A  4    adelmo           1322832789               560311
+##  5:   A  5    eurico           1322489635               814776
+##  6:   C  6    jeremy           1322673149               510661
+##  7:   C  7    jeremy           1322673128               766645
+##  8:   A  8    jeremy           1322673076                54671
+##  9:   A  9  carlitos           1323084240               916313
+## 10:   A 10   charles           1322837822               384285
+## 11:   C 11  carlitos           1323084277                36553
+## 12:   C 12    jeremy           1322673101               442731
+## 13:   C 13    eurico           1322489661               298656
+## 14:   A 14    jeremy           1322673043               178652
+## 15:   C 15    jeremy           1322673156               550750
+## 16:   A 16    eurico           1322489713               706637
+## 17:   A 17     pedro           1323094971               920315
+## 18:   A 18  carlitos           1323084285               176314
+## 19:   A 19     pedro           1323094999               828379
+## 20:   C 20    eurico           1322489658               106658
+##       cvtd_timestamp new_window num_window problem_id
+##  1: 05/12/2011 14:23         no         74          1
+##  2: 30/11/2011 17:11         no        431          2
+##  3: 30/11/2011 17:11         no        439          3
+##  4: 02/12/2011 13:33         no        194          4
+##  5: 28/11/2011 14:13         no        235          5
+##  6: 30/11/2011 17:12         no        504          6
+##  7: 30/11/2011 17:12         no        485          7
+##  8: 30/11/2011 17:11         no        440          8
+##  9: 05/12/2011 11:24         no        323          9
+## 10: 02/12/2011 14:57         no        664         10
+## 11: 05/12/2011 11:24         no        859         11
+## 12: 30/11/2011 17:11         no        461         12
+## 13: 28/11/2011 14:14         no        257         13
+## 14: 30/11/2011 17:10         no        408         14
+## 15: 30/11/2011 17:12         no        779         15
+## 16: 28/11/2011 14:15         no        302         16
+## 17: 05/12/2011 14:22         no         48         17
+## 18: 05/12/2011 11:24         no        361         18
+## 19: 05/12/2011 14:23         no         72         19
+## 20: 28/11/2011 14:14         no        255         20
+```
+
+## Submission to Coursera
+
+Write submission files to `predictionAssignment_files/answers`.
+
+
+```r
+pml_write_files = function(x){
+  n = length(x)
+  path <- "predictionAssignment_files/answers"
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=file.path(path, filename),quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(hat)
 ```
