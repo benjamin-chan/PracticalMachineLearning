@@ -3,7 +3,7 @@ Benjamin Chan [GitHub](https://github.com/benjamin-chan)
 
 
 ```
-## Run time: 2014-10-23 06:02:25
+## Run time: 2014-10-23 13:28:39
 ## R version: R version 3.1.1 (2014-07-10)
 ```
 
@@ -290,7 +290,8 @@ require(doParallel)
 ```
 
 ```r
-cl <- makeCluster(2)
+nCores <- detectCores()
+cl <- makeCluster(nCores / 2)
 registerDoParallel(cl)
 ```
 
@@ -307,12 +308,19 @@ Fit model over the tuning parameters.
 
 
 ```r
-method <- "rpart"
-trainingModel <- train(classe ~ ., data=DTrainCS, method=method)
+method <- "rf"
+system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
 ```
 
 ```
-## Loading required package: rpart
+## Loading required package: randomForest
+## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.
+```
+
+```
+##    user  system elapsed 
+##   83.37    1.59  668.12
 ```
 
 Stop the clusters.
@@ -322,7 +330,7 @@ Stop the clusters.
 stopCluster(cl)
 ```
 
-Evaluate the model.
+## Evaluate the model on the training dataset
 
 
 ```r
@@ -330,7 +338,7 @@ trainingModel
 ```
 
 ```
-## CART 
+## Random Forest 
 ## 
 ## 11776 samples
 ##    52 predictor
@@ -343,13 +351,13 @@ trainingModel
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   cp    Accuracy  Kappa  Accuracy SD  Kappa SD
-##   0.04  0.5       0.36   0.02         0.03    
-##   0.06  0.4       0.18   0.06         0.10    
-##   0.11  0.3       0.08   0.04         0.06    
+##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
+##    2    1         1      0.002        0.003   
+##   27    1         1      0.002        0.002   
+##   52    1         1      0.004        0.006   
 ## 
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was cp = 0.0356.
+## The final value used for the model was mtry = 27.
 ```
 
 ```r
@@ -362,34 +370,37 @@ confusionMatrix(hat, DTrain[, classe])
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2995  921  945  852  277
-##          B   61  802   72  347  301
-##          C  250  556 1037  731  580
-##          D    0    0    0    0    0
-##          E   42    0    0    0 1007
+##          A 3348    0    0    0    0
+##          B    0 2279    0    0    0
+##          C    0    0 2054    0    0
+##          D    0    0    0 1930    0
+##          E    0    0    0    0 2165
 ## 
 ## Overall Statistics
-##                                         
-##                Accuracy : 0.496         
-##                  95% CI : (0.487, 0.505)
-##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : <2e-16        
-##                                         
-##                   Kappa : 0.342         
-##  Mcnemar's Test P-Value : NA            
+##                                 
+##                Accuracy : 1     
+##                  95% CI : (1, 1)
+##     No Information Rate : 0.284 
+##     P-Value [Acc > NIR] : <2e-16
+##                                 
+##                   Kappa : 1     
+##  Mcnemar's Test P-Value : NA    
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.895   0.3519   0.5049    0.000   0.4651
-## Specificity             0.645   0.9178   0.7822    1.000   0.9956
-## Pos Pred Value          0.500   0.5066   0.3288      NaN   0.9600
-## Neg Pred Value          0.939   0.8551   0.8820    0.836   0.8920
-## Prevalence              0.284   0.1935   0.1744    0.164   0.1838
-## Detection Rate          0.254   0.0681   0.0881    0.000   0.0855
-## Detection Prevalence    0.509   0.1344   0.2678    0.000   0.0891
-## Balanced Accuracy       0.770   0.6348   0.6436    0.500   0.7304
+## Sensitivity             1.000    1.000    1.000    1.000    1.000
+## Specificity             1.000    1.000    1.000    1.000    1.000
+## Pos Pred Value          1.000    1.000    1.000    1.000    1.000
+## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
+## Prevalence              0.284    0.194    0.174    0.164    0.184
+## Detection Rate          0.284    0.194    0.174    0.164    0.184
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000
 ```
+
+## Evaluate the model on the probing dataset
+
 
 ```r
 hat <- predict(trainingModel, DProbeCS)
@@ -401,97 +412,91 @@ confusionMatrix(hat, DProbeCS[, classe])
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2011  643  641  589  212
-##          B   34  501   37  233  173
-##          C  155  374  690  464  365
-##          D    0    0    0    0    0
-##          E   32    0    0    0  692
+##          A 2230   16    0    0    0
+##          B    1 1498    6    2    2
+##          C    0    4 1353   18    7
+##          D    0    0    9 1265    7
+##          E    1    0    0    1 1426
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.496         
-##                  95% CI : (0.485, 0.507)
+##                Accuracy : 0.991         
+##                  95% CI : (0.988, 0.993)
 ##     No Information Rate : 0.284         
 ##     P-Value [Acc > NIR] : <2e-16        
 ##                                         
-##                   Kappa : 0.341         
+##                   Kappa : 0.988         
 ##  Mcnemar's Test P-Value : NA            
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.901   0.3300   0.5044    0.000   0.4799
-## Specificity             0.629   0.9246   0.7904    1.000   0.9950
-## Pos Pred Value          0.491   0.5123   0.3369      NaN   0.9558
-## Neg Pred Value          0.941   0.8519   0.8831    0.836   0.8947
-## Prevalence              0.284   0.1935   0.1744    0.164   0.1838
-## Detection Rate          0.256   0.0639   0.0879    0.000   0.0882
-## Detection Prevalence    0.522   0.1246   0.2610    0.000   0.0923
-## Balanced Accuracy       0.765   0.6273   0.6474    0.500   0.7374
+## Sensitivity             0.999    0.987    0.989    0.984    0.989
+## Specificity             0.997    0.998    0.996    0.998    1.000
+## Pos Pred Value          0.993    0.993    0.979    0.988    0.999
+## Neg Pred Value          1.000    0.997    0.998    0.997    0.998
+## Prevalence              0.284    0.193    0.174    0.164    0.184
+## Detection Rate          0.284    0.191    0.172    0.161    0.182
+## Detection Prevalence    0.286    0.192    0.176    0.163    0.182
+## Balanced Accuracy       0.998    0.993    0.992    0.991    0.994
 ```
+
+## Display the final model
+
 
 ```r
 varImp(trainingModel)
 ```
 
 ```
-## rpart variable importance
+## rf variable importance
 ## 
 ##   only 20 most important variables shown (out of 52)
 ## 
-##                   Overall
-## pitch_forearm       100.0
-## roll_belt            91.5
-## roll_forearm         77.1
-## magnet_dumbbell_y    51.8
-## accel_belt_z         44.1
-## magnet_belt_y        41.6
-## yaw_belt             41.0
-## total_accel_belt     36.9
-## magnet_arm_x         27.1
-## accel_arm_x          26.0
-## magnet_dumbbell_z    20.7
-## roll_dumbbell        19.8
-## accel_dumbbell_y     15.8
-## roll_arm             15.3
-## accel_dumbbell_x      0.0
-## gyros_belt_x          0.0
-## gyros_forearm_z       0.0
-## gyros_arm_z           0.0
-## yaw_forearm           0.0
-## gyros_belt_z          0.0
+##                      Overall
+## roll_belt             100.00
+## pitch_forearm          59.81
+## yaw_belt               54.35
+## pitch_belt             45.92
+## magnet_dumbbell_z      43.76
+## roll_forearm           43.52
+## magnet_dumbbell_y      43.32
+## accel_dumbbell_y       22.41
+## roll_dumbbell          18.30
+## magnet_dumbbell_x      17.99
+## accel_forearm_x        17.50
+## accel_belt_z           14.59
+## magnet_belt_z          14.43
+## accel_dumbbell_z       13.94
+## magnet_forearm_z       13.91
+## total_accel_dumbbell   13.20
+## magnet_belt_y          12.33
+## yaw_arm                11.81
+## gyros_belt_z           11.18
+## magnet_belt_x           9.19
 ```
-
-Display the final model.
-
 
 ```r
 trainingModel$finalModel
 ```
 
 ```
-## n= 11776 
 ## 
-## node), split, n, loss, yval, (yprob)
-##       * denotes terminal node
+## Call:
+##  randomForest(x = x, y = y, mtry = param$mtry) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 27
 ## 
-##  1) root 11776 8428 A (0.28 0.19 0.17 0.16 0.18)  
-##    2) roll_belt< 1.041 10727 7421 A (0.31 0.21 0.19 0.18 0.11)  
-##      4) pitch_forearm< -1.617 917    5 A (0.99 0.0055 0 0 0) *
-##      5) pitch_forearm>=-1.617 9810 7416 A (0.24 0.23 0.21 0.2 0.12)  
-##       10) magnet_dumbbell_y< 0.6513 8227 5894 A (0.28 0.18 0.24 0.19 0.1)  
-##         20) roll_forearm< 0.8236 5073 2990 A (0.41 0.18 0.19 0.17 0.055) *
-##         21) roll_forearm>=0.8236 3154 2117 C (0.079 0.18 0.33 0.23 0.18) *
-##       11) magnet_dumbbell_y>=0.6513 1583  781 B (0.039 0.51 0.045 0.22 0.19) *
-##    3) roll_belt>=1.041 1049   42 E (0.04 0 0 0 0.96) *
+##         OOB estimate of  error rate: 0.79%
+## Confusion matrix:
+##      A    B    C    D    E class.error
+## A 3341    5    2    0    0    0.002091
+## B   16 2255    7    1    0    0.010531
+## C    0   10 2037    7    0    0.008277
+## D    0    1   27 1899    3    0.016062
+## E    1    2    2    9 2151    0.006467
 ```
-
-```r
-plot(trainingModel$finalModel)
-text(trainingModel$finalModel)
-```
-
-![plot of chunk finalModel](./predictionAssignment_files/figure-html/finalModel.png) 
 
 Save training model object for later.
 
@@ -527,26 +532,26 @@ subset(DTest, select=names(DTest)[grep("belt|[^(fore)]arm|dumbbell|forearm", nam
 
 ```
 ##     hat V1 user_name raw_timestamp_part_1 raw_timestamp_part_2
-##  1:   C  1     pedro           1323095002               868349
+##  1:   B  1     pedro           1323095002               868349
 ##  2:   A  2    jeremy           1322673067               778725
-##  3:   C  3    jeremy           1322673075               342967
+##  3:   B  3    jeremy           1322673075               342967
 ##  4:   A  4    adelmo           1322832789               560311
 ##  5:   A  5    eurico           1322489635               814776
-##  6:   C  6    jeremy           1322673149               510661
-##  7:   C  7    jeremy           1322673128               766645
-##  8:   A  8    jeremy           1322673076                54671
+##  6:   E  6    jeremy           1322673149               510661
+##  7:   D  7    jeremy           1322673128               766645
+##  8:   B  8    jeremy           1322673076                54671
 ##  9:   A  9  carlitos           1323084240               916313
 ## 10:   A 10   charles           1322837822               384285
-## 11:   C 11  carlitos           1323084277                36553
+## 11:   B 11  carlitos           1323084277                36553
 ## 12:   C 12    jeremy           1322673101               442731
-## 13:   C 13    eurico           1322489661               298656
+## 13:   B 13    eurico           1322489661               298656
 ## 14:   A 14    jeremy           1322673043               178652
-## 15:   C 15    jeremy           1322673156               550750
-## 16:   A 16    eurico           1322489713               706637
+## 15:   E 15    jeremy           1322673156               550750
+## 16:   E 16    eurico           1322489713               706637
 ## 17:   A 17     pedro           1323094971               920315
-## 18:   A 18  carlitos           1323084285               176314
-## 19:   A 19     pedro           1323094999               828379
-## 20:   C 20    eurico           1322489658               106658
+## 18:   B 18  carlitos           1323084285               176314
+## 19:   B 19     pedro           1323094999               828379
+## 20:   B 20    eurico           1322489658               106658
 ##       cvtd_timestamp new_window num_window problem_id
 ##  1: 05/12/2011 14:23         no         74          1
 ##  2: 30/11/2011 17:11         no        431          2

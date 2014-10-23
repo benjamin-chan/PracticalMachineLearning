@@ -156,7 +156,8 @@ Set up the parallel clusters.
 ```{r}
 require(parallel)
 require(doParallel)
-cl <- makeCluster(2)
+nCores <- detectCores()
+cl <- makeCluster(nCores / 2)
 registerDoParallel(cl)
 ```
 
@@ -171,8 +172,8 @@ ctrl <- trainControl(classProbs=TRUE,
 Fit model over the tuning parameters.
 
 ```{r}
-method <- "rpart"
-trainingModel <- train(classe ~ ., data=DTrainCS, method=method)
+method <- "rf"
+system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
 ```
 
 Stop the clusters.
@@ -181,25 +182,26 @@ Stop the clusters.
 stopCluster(cl)
 ```
 
-Evaluate the model.
+## Evaluate the model on the training dataset
 
 ```{r}
 trainingModel
 hat <- predict(trainingModel, DTrainCS)
 confusionMatrix(hat, DTrain[, classe])
-hat <- predict(trainingModel, DProbeCS)
-confusionMatrix(hat, DProbeCS[, classe])
-varImp(trainingModel)
 ```
 
-Display the final model.
+## Evaluate the model on the probing dataset
+
+```{r}
+hat <- predict(trainingModel, DProbeCS)
+confusionMatrix(hat, DProbeCS[, classe])
+```
+
+## Display the final model
 
 ```{r finalModel}
+varImp(trainingModel)
 trainingModel$finalModel
-plot(trainingModel$finalModel)
-text(trainingModel$finalModel)
-# require(rattle)
-# fancyRpartPlot(trainingModel$finalModel)
 ```
 
 Save training model object for later.
