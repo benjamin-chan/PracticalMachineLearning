@@ -86,7 +86,7 @@ D <- D[, classe := factor(D[, classe])]
 D[, .N, classe]
 ```
 
-Split the dataset into training and probing datasets.
+Split the dataset into a 60% training and 40% probing dataset.
 
 ```{r}
 require(caret)
@@ -151,13 +151,16 @@ histGroup(DTrainCS, "forearm")
 
 # Train a prediction model
 
+Using random forest, the out of sample error should be small.
+The error will be estimated using the 40% probing sample.
+I would be quite happy with an error estimate of 3% or less.
+
 Set up the parallel clusters.
 
 ```{r}
 require(parallel)
 require(doParallel)
-nCores <- detectCores()
-cl <- makeCluster(nCores / 2)
+cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 ```
 
@@ -203,6 +206,8 @@ confusionMatrix(hat, DProbeCS[, classe])
 varImp(trainingModel)
 trainingModel$finalModel
 ```
+
+**The estimated error rate is less than 1%.**
 
 Save training model object for later.
 

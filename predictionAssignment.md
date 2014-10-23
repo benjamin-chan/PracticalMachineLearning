@@ -3,7 +3,7 @@ Benjamin Chan [GitHub](https://github.com/benjamin-chan)
 
 
 ```
-## Run time: 2014-10-23 13:28:39
+## Run time: 2014-10-23 15:40:34
 ## R version: R version 3.1.1 (2014-07-10)
 ```
 
@@ -152,7 +152,7 @@ D[, .N, classe]
 ## 5:      E 3607
 ```
 
-Split the dataset into training and probing datasets.
+Split the dataset into a 60% training and 40% probing dataset.
 
 
 ```r
@@ -268,6 +268,10 @@ histGroup(DTrainCS, "forearm")
 
 # Train a prediction model
 
+Using random forest, the out of sample error should be small.
+The error will be estimated using the 40% probing sample.
+I would be quite happy with an error estimate of 3% or less.
+
 Set up the parallel clusters.
 
 
@@ -290,8 +294,7 @@ require(doParallel)
 ```
 
 ```r
-nCores <- detectCores()
-cl <- makeCluster(nCores / 2)
+cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 ```
 
@@ -320,7 +323,7 @@ system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
 
 ```
 ##    user  system elapsed 
-##   83.37    1.59  668.12
+##   50.36    0.18 1482.91
 ```
 
 Stop the clusters.
@@ -352,7 +355,7 @@ trainingModel
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
-##    2    1         1      0.002        0.003   
+##    2    1         1      0.002        0.002   
 ##   27    1         1      0.002        0.002   
 ##   52    1         1      0.004        0.006   
 ## 
@@ -497,6 +500,8 @@ trainingModel$finalModel
 ## D    0    1   27 1899    3    0.016062
 ## E    1    2    2    9 2151    0.006467
 ```
+
+**The estimated error rate is less than 1%.**
 
 Save training model object for later.
 
