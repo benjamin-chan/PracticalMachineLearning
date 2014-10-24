@@ -88,8 +88,8 @@ M1 <- train(y ~ ., data=vowel.train, method="rf")
 M2 <- train(y ~ ., data=vowel.train, method="gbm")
 hat1 <- predict(M1, vowel.test)
 hat2 <- predict(M2, vowel.test)
-confusionMatrix(hat1, vowel.test$y)
-confusionMatrix(hat2, vowel.test$y)
+confusionMatrix(hat1, vowel.test$y)$overall
+confusionMatrix(hat2, vowel.test$y)$overall
 hat <- data.frame(hat1,
                   hat2,
                   y = vowel.test$y,
@@ -116,6 +116,11 @@ hat3 <- predict(M3, testing)
 hat <- data.frame(hat1, hat2, hat3, diagnosis=testing$diagnosis)
 M4 <- train(diagnosis ~ ., data=hat, method="rf")
 M4
+hat4 <- predict(M4, testing)
+confusionMatrix(hat1, testing$diagnosis)$overall
+confusionMatrix(hat2, testing$diagnosis)$overall
+confusionMatrix(hat3, testing$diagnosis)$overall
+confusionMatrix(hat4, testing$diagnosis)$overall
 # Question 3
 set.seed(3523)
 library(AppliedPredictiveModeling)
@@ -127,3 +132,30 @@ set.seed(233)
 M1 <- train(CompressiveStrength ~ ., data=training, method="lasso")
 M1
 plot(M1$finalModel, xvar="penalty")
+# Question 4
+library(lubridate)  # For year() function below
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/gaData.csv"
+dat = read.csv(url)
+training = dat[year(dat$date) < 2012,]
+testing = dat[(year(dat$date)) > 2011,]
+tstrain = ts(training$visitsTumblr)
+require(forecast)
+M <- bats(tstrain)
+M
+hat <- forecast(M, length(testing$visitsTumblr))
+hat <- cbind(testing, data.frame(hat))
+hat$isIn95 <- hat$Lo.95 < hat$visitsTumblr & hat$visitsTumblr < hat$Hi.95
+prop.table(table(hat$isIn95))
+#  Question 5
+set.seed(3523)
+library(AppliedPredictiveModeling)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
+set.seed(325)
+require(e1071)
+M <- svm(CompressiveStrength ~ ., data=training)
+testing$hat <- predict(M, testing)
+testing$error <- testing$CompressiveStrength - testing$hat
+rmse <- sqrt(mean(testing$error ^ 2))
