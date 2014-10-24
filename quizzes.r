@@ -71,3 +71,59 @@ M1 <- train(training$diagnosis ~ ., data=trainPC, method="glm")
 testPC <- predict(preProc, testing[predVar])
 hat1 <- predict(M1, testPC)
 confusionMatrix(testing$diagnosis, hat1)
+
+
+
+# Quiz 4
+# Question 1
+library(ElemStatLearn)
+data(vowel.train)
+data(vowel.test) 
+vowel.train$y <- factor(vowel.train$y)
+vowel.test$y <- factor(vowel.test$y)
+table(vowel.train$y)
+set.seed(33833)
+require(caret)
+M1 <- train(y ~ ., data=vowel.train, method="rf")
+M2 <- train(y ~ ., data=vowel.train, method="gbm")
+hat1 <- predict(M1, vowel.test)
+hat2 <- predict(M2, vowel.test)
+confusionMatrix(hat1, vowel.test$y)
+confusionMatrix(hat2, vowel.test$y)
+hat <- data.frame(hat1,
+                  hat2,
+                  y = vowel.test$y,
+                  agree = hat1 == hat2)
+accuracy <- sum(hat1[hat$agree] == hat$y[hat$agree]) / sum(hat$agree)
+accuracy
+# Question 2
+library(caret)
+library(gbm)
+set.seed(3433)
+library(AppliedPredictiveModeling)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+set.seed(62433)
+M1 <- train(diagnosis ~ ., data=training, method="rf")
+M2 <- train(diagnosis ~ ., data=training, method="gbm")
+M3 <- train(diagnosis ~ ., data=training, method="lda")
+hat1 <- predict(M1, testing)
+hat2 <- predict(M2, testing)
+hat3 <- predict(M3, testing)
+hat <- data.frame(hat1, hat2, hat3, diagnosis=testing$diagnosis)
+M4 <- train(diagnosis ~ ., data=hat, method="rf")
+M4
+# Question 3
+set.seed(3523)
+library(AppliedPredictiveModeling)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
+set.seed(233)
+M1 <- train(CompressiveStrength ~ ., data=training, method="lasso")
+M1
+plot(M1$finalModel, xvar="penalty")
