@@ -70,7 +70,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </ul>
 </div>
 
-<pre><code>## Run time: 2014-10-23 15:40:34
+<pre><code>## Run time: 2014-10-24 14:55:51
 ## R version: R version 3.1.1 (2014-07-10)</code></pre>
 <blockquote>
 <p><strong>Background</strong></p>
@@ -257,19 +257,47 @@ registerDoParallel(cl)</code></pre>
                      savePredictions=TRUE,
                      allowParallel=TRUE)</code></pre>
 <p>Fit model over the tuning parameters.</p>
-<pre class="r"><code>method &lt;- &quot;rf&quot;
+<pre class="r"><code>method &lt;- &quot;gbm&quot;
 system.time(trainingModel &lt;- train(classe ~ ., data=DTrainCS, method=method))</code></pre>
-<pre><code>## Loading required package: randomForest
-## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre><code>## Loading required package: gbm
+## Loading required package: survival
+## Loading required package: splines
+## 
+## Attaching package: 'survival'
+## 
+## The following object is masked from 'package:caret':
+## 
+##     cluster
+## 
+## Loaded gbm 2.1
+## Loading required package: plyr</code></pre>
+<pre><code>## Iter   TrainDeviance   ValidDeviance   StepSize   Improve
+##      1        1.6094             nan     0.1000    0.2392
+##      2        1.4588             nan     0.1000    0.1555
+##      3        1.3589             nan     0.1000    0.1263
+##      4        1.2793             nan     0.1000    0.1049
+##      5        1.2130             nan     0.1000    0.0894
+##      6        1.1561             nan     0.1000    0.0801
+##      7        1.1054             nan     0.1000    0.0699
+##      8        1.0621             nan     0.1000    0.0644
+##      9        1.0221             nan     0.1000    0.0503
+##     10        0.9888             nan     0.1000    0.0474
+##     20        0.7559             nan     0.1000    0.0273
+##     40        0.5338             nan     0.1000    0.0132
+##     60        0.4061             nan     0.1000    0.0062
+##     80        0.3240             nan     0.1000    0.0045
+##    100        0.2679             nan     0.1000    0.0043
+##    120        0.2222             nan     0.1000    0.0026
+##    140        0.1907             nan     0.1000    0.0017
+##    150        0.1774             nan     0.1000    0.0009</code></pre>
 <pre><code>##    user  system elapsed 
-##   50.36    0.18 1482.91</code></pre>
+##   31.68    0.06  629.92</code></pre>
 <p>Stop the clusters.</p>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 <div id="evaluate-the-model-on-the-training-dataset" class="section level2">
 <h2>Evaluate the model on the training dataset</h2>
 <pre class="r"><code>trainingModel</code></pre>
-<pre><code>## Random Forest 
+<pre><code>## Stochastic Gradient Boosting 
 ## 
 ## 11776 samples
 ##    52 predictor
@@ -282,46 +310,54 @@ system.time(trainingModel &lt;- train(classe ~ ., data=DTrainCS, method=method))
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
-##    2    1         1      0.002        0.002   
-##   27    1         1      0.002        0.002   
-##   52    1         1      0.004        0.006   
+##   interaction.depth  n.trees  Accuracy  Kappa  Accuracy SD  Kappa SD
+##   1                   50      0.7       0.7    0.008        0.010   
+##   1                  100      0.8       0.8    0.007        0.009   
+##   1                  150      0.8       0.8    0.006        0.007   
+##   2                   50      0.8       0.8    0.006        0.008   
+##   2                  100      0.9       0.9    0.004        0.005   
+##   2                  150      0.9       0.9    0.004        0.005   
+##   3                   50      0.9       0.9    0.005        0.007   
+##   3                  100      0.9       0.9    0.004        0.005   
+##   3                  150      1.0       0.9    0.003        0.004   
 ## 
+## Tuning parameter 'shrinkage' was held constant at a value of 0.1
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final value used for the model was mtry = 27.</code></pre>
+## The final values used for the model were n.trees = 150,
+##  interaction.depth = 3 and shrinkage = 0.1.</code></pre>
 <pre class="r"><code>hat &lt;- predict(trainingModel, DTrainCS)
 confusionMatrix(hat, DTrain[, classe])</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3348    0    0    0    0
-##          B    0 2279    0    0    0
-##          C    0    0 2054    0    0
-##          D    0    0    0 1930    0
-##          E    0    0    0    0 2165
+##          A 3314   58    0    0    1
+##          B   23 2181   38    1   17
+##          C    9   40 1998   58   11
+##          D    2    0   17 1863   25
+##          E    0    0    1    8 2111
 ## 
 ## Overall Statistics
-##                                 
-##                Accuracy : 1     
-##                  95% CI : (1, 1)
-##     No Information Rate : 0.284 
-##     P-Value [Acc &gt; NIR] : &lt;2e-16
-##                                 
-##                   Kappa : 1     
-##  Mcnemar's Test P-Value : NA    
+##                                         
+##                Accuracy : 0.974         
+##                  95% CI : (0.971, 0.977)
+##     No Information Rate : 0.284         
+##     P-Value [Acc &gt; NIR] : &lt; 2e-16       
+##                                         
+##                   Kappa : 0.967         
+##  Mcnemar's Test P-Value : 6.04e-14      
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             1.000    1.000    1.000    1.000    1.000
-## Specificity             1.000    1.000    1.000    1.000    1.000
-## Pos Pred Value          1.000    1.000    1.000    1.000    1.000
-## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
+## Sensitivity             0.990    0.957    0.973    0.965    0.975
+## Specificity             0.993    0.992    0.988    0.996    0.999
+## Pos Pred Value          0.983    0.965    0.944    0.977    0.996
+## Neg Pred Value          0.996    0.990    0.994    0.993    0.994
 ## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.284    0.194    0.174    0.164    0.184
-## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
-## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000</code></pre>
+## Detection Rate          0.281    0.185    0.170    0.158    0.179
+## Detection Prevalence    0.286    0.192    0.180    0.162    0.180
+## Balanced Accuracy       0.991    0.974    0.980    0.980    0.987</code></pre>
 </div>
 <div id="evaluate-the-model-on-the-probing-dataset" class="section level2">
 <h2>Evaluate the model on the probing dataset</h2>
@@ -331,78 +367,66 @@ confusionMatrix(hat, DProbeCS[, classe])</code></pre>
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2230   16    0    0    0
-##          B    1 1498    6    2    2
-##          C    0    4 1353   18    7
-##          D    0    0    9 1265    7
-##          E    1    0    0    1 1426
+##          A 2204   60    0    3    2
+##          B   19 1422   39    5   21
+##          C    6   36 1303   47   14
+##          D    2    0   21 1225   32
+##          E    1    0    5    6 1373
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.991         
-##                  95% CI : (0.988, 0.993)
+##                Accuracy : 0.959         
+##                  95% CI : (0.955, 0.964)
 ##     No Information Rate : 0.284         
-##     P-Value [Acc &gt; NIR] : &lt;2e-16        
+##     P-Value [Acc &gt; NIR] : &lt; 2e-16       
 ##                                         
-##                   Kappa : 0.988         
-##  Mcnemar's Test P-Value : NA            
+##                   Kappa : 0.949         
+##  Mcnemar's Test P-Value : 3.43e-14      
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.999    0.987    0.989    0.984    0.989
-## Specificity             0.997    0.998    0.996    0.998    1.000
-## Pos Pred Value          0.993    0.993    0.979    0.988    0.999
-## Neg Pred Value          1.000    0.997    0.998    0.997    0.998
+## Sensitivity             0.987    0.937    0.952    0.953    0.952
+## Specificity             0.988    0.987    0.984    0.992    0.998
+## Pos Pred Value          0.971    0.944    0.927    0.957    0.991
+## Neg Pred Value          0.995    0.985    0.990    0.991    0.989
 ## Prevalence              0.284    0.193    0.174    0.164    0.184
-## Detection Rate          0.284    0.191    0.172    0.161    0.182
-## Detection Prevalence    0.286    0.192    0.176    0.163    0.182
-## Balanced Accuracy       0.998    0.993    0.992    0.991    0.994</code></pre>
+## Detection Rate          0.281    0.181    0.166    0.156    0.175
+## Detection Prevalence    0.289    0.192    0.179    0.163    0.177
+## Balanced Accuracy       0.988    0.962    0.968    0.972    0.975</code></pre>
 </div>
 <div id="display-the-final-model" class="section level2">
 <h2>Display the final model</h2>
 <pre class="r"><code>varImp(trainingModel)</code></pre>
-<pre><code>## rf variable importance
+<pre><code>## gbm variable importance
 ## 
 ##   only 20 most important variables shown (out of 52)
 ## 
-##                      Overall
-## roll_belt             100.00
-## pitch_forearm          59.81
-## yaw_belt               54.35
-## pitch_belt             45.92
-## magnet_dumbbell_z      43.76
-## roll_forearm           43.52
-## magnet_dumbbell_y      43.32
-## accel_dumbbell_y       22.41
-## roll_dumbbell          18.30
-## magnet_dumbbell_x      17.99
-## accel_forearm_x        17.50
-## accel_belt_z           14.59
-## magnet_belt_z          14.43
-## accel_dumbbell_z       13.94
-## magnet_forearm_z       13.91
-## total_accel_dumbbell   13.20
-## magnet_belt_y          12.33
-## yaw_arm                11.81
-## gyros_belt_z           11.18
-## magnet_belt_x           9.19</code></pre>
+##                   Overall
+## roll_belt          100.00
+## pitch_forearm       49.00
+## yaw_belt            37.62
+## magnet_dumbbell_z   29.57
+## magnet_dumbbell_y   26.32
+## roll_forearm        22.75
+## magnet_belt_z       21.65
+## accel_forearm_x     14.61
+## gyros_belt_z        14.46
+## roll_dumbbell       12.40
+## pitch_belt          12.23
+## accel_dumbbell_y    11.41
+## gyros_dumbbell_y     9.90
+## accel_forearm_z      9.13
+## yaw_arm              8.78
+## accel_dumbbell_x     7.36
+## magnet_forearm_z     6.03
+## magnet_arm_z         5.69
+## magnet_belt_y        5.68
+## accel_dumbbell_z     5.11</code></pre>
 <pre class="r"><code>trainingModel$finalModel</code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, mtry = param$mtry) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 27
-## 
-##         OOB estimate of  error rate: 0.79%
-## Confusion matrix:
-##      A    B    C    D    E class.error
-## A 3341    5    2    0    0    0.002091
-## B   16 2255    7    1    0    0.010531
-## C    0   10 2037    7    0    0.008277
-## D    0    1   27 1899    3    0.016062
-## E    1    2    2    9 2151    0.006467</code></pre>
+<pre><code>## A gradient boosted model with multinomial loss function.
+## 150 iterations were performed.
+## There were 52 predictors of which 39 had non-zero influence.</code></pre>
 <p><strong>The estimated error rate is less than 1%.</strong></p>
 <p>Save training model object for later.</p>
 <pre class="r"><code>save(trainingModel, file=&quot;trainingModel.RData&quot;)</code></pre>

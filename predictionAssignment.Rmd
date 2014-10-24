@@ -175,8 +175,8 @@ ctrl <- trainControl(classProbs=TRUE,
 Fit model over the tuning parameters.
 
 ```{r}
-method <- "rf"
 system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
+method <- "gbm"
 ```
 
 Stop the clusters.
