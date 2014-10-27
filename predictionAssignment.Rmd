@@ -172,11 +172,29 @@ ctrl <- trainControl(classProbs=TRUE,
                      allowParallel=TRUE)
 ```
 
+Get principal components.
+
+```{r}
+X <- DTrainCS[, predCandidates, with=FALSE]
+preProcPC <- preProcess(X, method="pca")
+preProcPC
+DTrainPC <- data.table(predict(preProcPC, X))
+DTrainPC <- DTrainPC[, classe := DTrainCS[, classe]]
+```
+
+The default tuning grid resulted in a random forest training fit where `The final value used for the model was mtry = 2.`.
+This seems restrictive.
+Try an alternative tuning grid.
+
+```{r}
+tuneGrid <- expand.grid(mtry=seq(2, 10, 2))
+```
+
 Fit model over the tuning parameters.
 
 ```{r}
-system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
-method <- "gbm"
+method <- "rf"
+system.time(trainingModel <- train(classe ~ ., data=DTrainPC, method=method, tuneGrid=tuneGrid))
 ```
 
 Stop the clusters.
@@ -189,15 +207,17 @@ stopCluster(cl)
 
 ```{r}
 trainingModel
-hat <- predict(trainingModel, DTrainCS)
-confusionMatrix(hat, DTrain[, classe])
+hat <- predict(trainingModel, DTrainPC)
+confusionMatrix(hat, DTrainPC[, .outcome])
 ```
 
 ## Evaluate the model on the probing dataset
 
 ```{r}
-hat <- predict(trainingModel, DProbeCS)
-confusionMatrix(hat, DProbeCS[, classe])
+DProbePC <- data.table(predict(preProcPC, DProbeCS[, predCandidates, with=FALSE]))
+DProbePC <- DProbePC[, classe := DProbeCS[, classe]]
+hat <- predict(trainingModel, DProbePC)
+confusionMatrix(hat, DProbePC[, classe])
 ```
 
 ## Display the final model
@@ -227,8 +247,9 @@ load(file="trainingModel.RData", verbose=TRUE)
 Get predictions and evaluate.
 
 ```{r}
-DTestCS <- predict(preProc, DTest[, predCandidates, with=FALSE])
-hat <- predict(trainingModel, DTestCS)
+DTestCS <- data.table(predict(preProc, DTest[, predCandidates, with=FALSE]))
+DTestPC <- data.table(predict(preProcPC, DTestCS[, predCandidates, with=FALSE]))
+hat <- predict(trainingModel, DTestPC)
 DTest <- cbind(hat , DTest)
 subset(DTest, select=names(DTest)[grep("belt|[^(fore)]arm|dumbbell|forearm", names(DTest), invert=TRUE)])
 ```

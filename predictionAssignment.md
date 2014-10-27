@@ -3,7 +3,7 @@ Benjamin Chan [GitHub](https://github.com/benjamin-chan)
 
 
 ```
-## Run time: 2014-10-24 14:55:51
+## Run time: 2014-10-27 09:16:09
 ## R version: R version 3.1.1 (2014-07-10)
 ```
 
@@ -307,54 +307,57 @@ ctrl <- trainControl(classProbs=TRUE,
                      allowParallel=TRUE)
 ```
 
+Get principal components.
+
+
+```r
+X <- DTrainCS[, predCandidates, with=FALSE]
+preProcPC <- preProcess(X, method="pca")
+preProcPC
+```
+
+```
+## 
+## Call:
+## preProcess.default(x = X, method = "pca")
+## 
+## Created from 11776 samples and 52 variables
+## Pre-processing: principal component signal extraction, scaled, centered 
+## 
+## PCA needed 26 components to capture 95 percent of the variance
+```
+
+```r
+DTrainPC <- data.table(predict(preProcPC, X))
+DTrainPC <- DTrainPC[, classe := DTrainCS[, classe]]
+```
+
+The default tuning grid resulted in a random forest training fit where `The final value used for the model was mtry = 2.`.
+This seems restrictive.
+Try an alternative tuning grid.
+
+
+```r
+tuneGrid <- expand.grid(mtry=seq(2, 10, 2))
+```
+
 Fit model over the tuning parameters.
 
 
 ```r
-method <- "gbm"
-system.time(trainingModel <- train(classe ~ ., data=DTrainCS, method=method))
+method <- "rf"
+system.time(trainingModel <- train(classe ~ ., data=DTrainPC, method=method, tuneGrid=tuneGrid))
 ```
 
 ```
-## Loading required package: gbm
-## Loading required package: survival
-## Loading required package: splines
-## 
-## Attaching package: 'survival'
-## 
-## The following object is masked from 'package:caret':
-## 
-##     cluster
-## 
-## Loaded gbm 2.1
-## Loading required package: plyr
-```
-
-```
-## Iter   TrainDeviance   ValidDeviance   StepSize   Improve
-##      1        1.6094             nan     0.1000    0.2392
-##      2        1.4588             nan     0.1000    0.1555
-##      3        1.3589             nan     0.1000    0.1263
-##      4        1.2793             nan     0.1000    0.1049
-##      5        1.2130             nan     0.1000    0.0894
-##      6        1.1561             nan     0.1000    0.0801
-##      7        1.1054             nan     0.1000    0.0699
-##      8        1.0621             nan     0.1000    0.0644
-##      9        1.0221             nan     0.1000    0.0503
-##     10        0.9888             nan     0.1000    0.0474
-##     20        0.7559             nan     0.1000    0.0273
-##     40        0.5338             nan     0.1000    0.0132
-##     60        0.4061             nan     0.1000    0.0062
-##     80        0.3240             nan     0.1000    0.0045
-##    100        0.2679             nan     0.1000    0.0043
-##    120        0.2222             nan     0.1000    0.0026
-##    140        0.1907             nan     0.1000    0.0017
-##    150        0.1774             nan     0.1000    0.0009
+## Loading required package: randomForest
+## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.
 ```
 
 ```
 ##    user  system elapsed 
-##   31.68    0.06  629.92
+##   23.18    0.25 1111.66
 ```
 
 Stop the clusters.
@@ -372,10 +375,10 @@ trainingModel
 ```
 
 ```
-## Stochastic Gradient Boosting 
+## Random Forest 
 ## 
 ## 11776 samples
-##    52 predictor
+##    26 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
@@ -385,26 +388,20 @@ trainingModel
 ## 
 ## Resampling results across tuning parameters:
 ## 
-##   interaction.depth  n.trees  Accuracy  Kappa  Accuracy SD  Kappa SD
-##   1                   50      0.7       0.7    0.008        0.010   
-##   1                  100      0.8       0.8    0.007        0.009   
-##   1                  150      0.8       0.8    0.006        0.007   
-##   2                   50      0.8       0.8    0.006        0.008   
-##   2                  100      0.9       0.9    0.004        0.005   
-##   2                  150      0.9       0.9    0.004        0.005   
-##   3                   50      0.9       0.9    0.005        0.007   
-##   3                  100      0.9       0.9    0.004        0.005   
-##   3                  150      1.0       0.9    0.003        0.004   
+##   mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
+##    2    1         0.9    0.004        0.006   
+##    4    1         0.9    0.004        0.005   
+##    6    1         0.9    0.004        0.005   
+##    8    1         0.9    0.004        0.005   
+##   10    1         0.9    0.004        0.005   
 ## 
-## Tuning parameter 'shrinkage' was held constant at a value of 0.1
 ## Accuracy was used to select the optimal model using  the largest value.
-## The final values used for the model were n.trees = 150,
-##  interaction.depth = 3 and shrinkage = 0.1.
+## The final value used for the model was mtry = 2.
 ```
 
 ```r
-hat <- predict(trainingModel, DTrainCS)
-confusionMatrix(hat, DTrain[, classe])
+hat <- predict(trainingModel, DTrainPC)
+confusionMatrix(hat, DTrainPC[, .outcome])
 ```
 
 ```
@@ -412,41 +409,43 @@ confusionMatrix(hat, DTrain[, classe])
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3314   58    0    0    1
-##          B   23 2181   38    1   17
-##          C    9   40 1998   58   11
-##          D    2    0   17 1863   25
-##          E    0    0    1    8 2111
+##          A 3348    0    0    0    0
+##          B    0 2279    0    0    0
+##          C    0    0 2054    0    0
+##          D    0    0    0 1930    0
+##          E    0    0    0    0 2165
 ## 
 ## Overall Statistics
-##                                         
-##                Accuracy : 0.974         
-##                  95% CI : (0.971, 0.977)
-##     No Information Rate : 0.284         
-##     P-Value [Acc > NIR] : < 2e-16       
-##                                         
-##                   Kappa : 0.967         
-##  Mcnemar's Test P-Value : 6.04e-14      
+##                                 
+##                Accuracy : 1     
+##                  95% CI : (1, 1)
+##     No Information Rate : 0.284 
+##     P-Value [Acc > NIR] : <2e-16
+##                                 
+##                   Kappa : 1     
+##  Mcnemar's Test P-Value : NA    
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.990    0.957    0.973    0.965    0.975
-## Specificity             0.993    0.992    0.988    0.996    0.999
-## Pos Pred Value          0.983    0.965    0.944    0.977    0.996
-## Neg Pred Value          0.996    0.990    0.994    0.993    0.994
+## Sensitivity             1.000    1.000    1.000    1.000    1.000
+## Specificity             1.000    1.000    1.000    1.000    1.000
+## Pos Pred Value          1.000    1.000    1.000    1.000    1.000
+## Neg Pred Value          1.000    1.000    1.000    1.000    1.000
 ## Prevalence              0.284    0.194    0.174    0.164    0.184
-## Detection Rate          0.281    0.185    0.170    0.158    0.179
-## Detection Prevalence    0.286    0.192    0.180    0.162    0.180
-## Balanced Accuracy       0.991    0.974    0.980    0.980    0.987
+## Detection Rate          0.284    0.194    0.174    0.164    0.184
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       1.000    1.000    1.000    1.000    1.000
 ```
 
 ## Evaluate the model on the probing dataset
 
 
 ```r
-hat <- predict(trainingModel, DProbeCS)
-confusionMatrix(hat, DProbeCS[, classe])
+DProbePC <- data.table(predict(preProcPC, DProbeCS[, predCandidates, with=FALSE]))
+DProbePC <- DProbePC[, classe := DProbeCS[, classe]]
+hat <- predict(trainingModel, DProbePC)
+confusionMatrix(hat, DProbePC[, classe])
 ```
 
 ```
@@ -454,33 +453,33 @@ confusionMatrix(hat, DProbeCS[, classe])
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 2204   60    0    3    2
-##          B   19 1422   39    5   21
-##          C    6   36 1303   47   14
-##          D    2    0   21 1225   32
-##          E    1    0    5    6 1373
+##          A 2217   28    1    1    0
+##          B    3 1462   25    5    7
+##          C   10   27 1327   67   18
+##          D    1    0   13 1207    9
+##          E    1    1    2    6 1408
 ## 
 ## Overall Statistics
 ##                                         
-##                Accuracy : 0.959         
-##                  95% CI : (0.955, 0.964)
+##                Accuracy : 0.971         
+##                  95% CI : (0.967, 0.975)
 ##     No Information Rate : 0.284         
 ##     P-Value [Acc > NIR] : < 2e-16       
 ##                                         
-##                   Kappa : 0.949         
-##  Mcnemar's Test P-Value : 3.43e-14      
+##                   Kappa : 0.964         
+##  Mcnemar's Test P-Value : 1.36e-14      
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity             0.987    0.937    0.952    0.953    0.952
-## Specificity             0.988    0.987    0.984    0.992    0.998
-## Pos Pred Value          0.971    0.944    0.927    0.957    0.991
-## Neg Pred Value          0.995    0.985    0.990    0.991    0.989
+## Sensitivity             0.993    0.963    0.970    0.939    0.976
+## Specificity             0.995    0.994    0.981    0.996    0.998
+## Pos Pred Value          0.987    0.973    0.916    0.981    0.993
+## Neg Pred Value          0.997    0.991    0.994    0.988    0.995
 ## Prevalence              0.284    0.193    0.174    0.164    0.184
-## Detection Rate          0.281    0.181    0.166    0.156    0.175
-## Detection Prevalence    0.289    0.192    0.179    0.163    0.177
-## Balanced Accuracy       0.988    0.962    0.968    0.972    0.975
+## Detection Rate          0.283    0.186    0.169    0.154    0.179
+## Detection Prevalence    0.286    0.191    0.185    0.157    0.181
+## Balanced Accuracy       0.994    0.978    0.976    0.968    0.987
 ```
 
 ## Display the final model
@@ -491,31 +490,31 @@ varImp(trainingModel)
 ```
 
 ```
-## gbm variable importance
+## rf variable importance
 ## 
-##   only 20 most important variables shown (out of 52)
+##   only 20 most important variables shown (out of 26)
 ## 
-##                   Overall
-## roll_belt          100.00
-## pitch_forearm       49.00
-## yaw_belt            37.62
-## magnet_dumbbell_z   29.57
-## magnet_dumbbell_y   26.32
-## roll_forearm        22.75
-## magnet_belt_z       21.65
-## accel_forearm_x     14.61
-## gyros_belt_z        14.46
-## roll_dumbbell       12.40
-## pitch_belt          12.23
-## accel_dumbbell_y    11.41
-## gyros_dumbbell_y     9.90
-## accel_forearm_z      9.13
-## yaw_arm              8.78
-## accel_dumbbell_x     7.36
-## magnet_forearm_z     6.03
-## magnet_arm_z         5.69
-## magnet_belt_y        5.68
-## accel_dumbbell_z     5.11
+##      Overall
+## PC7    100.0
+## PC15    97.5
+## PC1     88.7
+## PC3     83.0
+## PC13    74.6
+## PC4     73.7
+## PC12    73.1
+## PC5     72.2
+## PC9     69.2
+## PC18    68.6
+## PC17    64.7
+## PC2     64.5
+## PC16    59.1
+## PC10    57.2
+## PC6     55.2
+## PC8     54.5
+## PC14    46.6
+## PC23    46.2
+## PC20    42.7
+## PC26    40.6
 ```
 
 ```r
@@ -523,9 +522,21 @@ trainingModel$finalModel
 ```
 
 ```
-## A gradient boosted model with multinomial loss function.
-## 150 iterations were performed.
-## There were 52 predictors of which 39 had non-zero influence.
+## 
+## Call:
+##  randomForest(x = x, y = y, mtry = param$mtry) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 2
+## 
+##         OOB estimate of  error rate: 2.91%
+## Confusion matrix:
+##      A    B    C    D    E class.error
+## A 3322    7   10    6    3    0.007766
+## B   36 2199   40    2    2    0.035103
+## C    3   36 1992   17    6    0.030185
+## D    4    1  107 1814    4    0.060104
+## E    1   14   24   20 2106    0.027252
 ```
 
 **The estimated error rate is less than 1%.**
@@ -556,8 +567,9 @@ Get predictions and evaluate.
 
 
 ```r
-DTestCS <- predict(preProc, DTest[, predCandidates, with=FALSE])
-hat <- predict(trainingModel, DTestCS)
+DTestCS <- data.table(predict(preProc, DTest[, predCandidates, with=FALSE]))
+DTestPC <- data.table(predict(preProcPC, DTestCS[, predCandidates, with=FALSE]))
+hat <- predict(trainingModel, DTestPC)
 DTest <- cbind(hat , DTest)
 subset(DTest, select=names(DTest)[grep("belt|[^(fore)]arm|dumbbell|forearm", names(DTest), invert=TRUE)])
 ```
